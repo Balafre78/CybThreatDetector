@@ -26,5 +26,4 @@ print(f"{len(dataframes)} CSV files loaded.")
 # Merging all files
 df_train = pd.concat(dataframes, ignore_index=True)
 # Save the new merged dataset in order to avoid downloading everytime the same files
-df_train.to_csv("Cyberdataset_train.csv", index=False)
-verif = True
+df_train.to_csv("cyberdataset_train.csv", index=False)

@@ -2,16 +2,8 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-# from dataloader import dataframes
 
-#verif = False
-#test = input("Have the file cyberdata_train.csv been crearted? (y/n) ")
-#if test == "y":
 df_train = pd.read_csv("./cyberdataset_train.csv")
-#else:
- #   df_train = pd.concat(dataframes, ignore_index=True)
-  #  df_train.to_csv("Cyberdataset_train.csv", index=False)
-
 pd.set_option('display.max_rows', None)  # Display all rows
 pd.set_option('display.max_columns', None)  # Display all columns
 pd.set_option('display.width', None)
@@ -73,18 +65,17 @@ def heatmap_correlation(df):
         linewidths=0.3,
         cbar_kws={"shrink": .8}
     )
-
     # Add title and layout adjustments
-    plt.title("Correlation Heatmap", fontsize=14, pad=12)
+    plt.title("Correlation Heatmap", fontsize=30, pad=12)
     plt.tight_layout()
     plt.show()
 
-def clear_df(df, threshold=2722201):
+def clear_df(df, threshold=2829385):
     # Drop any rows containing NaN values
     cleaned_df = df.dropna()
-    cleaned_df = cleaned_df.select_dtypes(include=np.number)
+    cleaned_df = cleaned_df.reset_index(drop=True)
     # Count number of zeros in each column
-    zero_counts = (cleaned_df == 0).sum()
+    zero_counts = (cleaned_df.iloc[:,:-1] == 0).sum()
     # Identify columns to drop
     cols_to_drop = zero_counts[zero_counts == threshold].index
     print(f"Columns dropped ({len(cols_to_drop)}):")
@@ -93,8 +84,15 @@ def clear_df(df, threshold=2722201):
     df_cleaned = cleaned_df.drop(columns=cols_to_drop)
     return df_cleaned
 
+def count_labels(df):
+    label_col = df.columns[-1]  # last column
+    counts = df[label_col].value_counts()
+    print("\n### Label counts ###")
+    print(counts)
+
 def get_highly_correlated_features(df, threshold=0.9):
     # df supposed to be cleared already
+    df = df.iloc[:,:-1]
     corr_matrix = df.corr().abs()
     upper_triangle = corr_matrix.where(
         np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
@@ -127,5 +125,10 @@ def drop_highly_correlated_features(df):
     return df_cleaned
 
 df_cleaned = clear_df(df_train)
-print((df_cleaned==0).sum())
+print(df_cleaned.info())
+print(df_cleaned.head())
+count_labels(df_cleaned)
 high_corr_cols = get_highly_correlated_features(df_cleaned)
+print(high_corr_cols)
+df_cleaned = drop_highly_correlated_features(df_cleaned)
+heatmap_correlation(df_cleaned)
