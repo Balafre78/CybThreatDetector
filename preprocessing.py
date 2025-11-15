@@ -70,19 +70,23 @@ def heatmap_correlation(df):
     plt.tight_layout()
     plt.show()
 
-def clear_df(df, threshold=2829385):
-    # Drop any rows containing NaN values
+def clear_df(df):
+    # Drop rows with NaN
     cleaned_df = df.dropna()
+    #  Remove rows containing +inf or -inf
+    cleaned_df = cleaned_df[~np.isinf(cleaned_df.select_dtypes(include=[np.number])).any(axis=1)]
     cleaned_df = cleaned_df.reset_index(drop=True)
-    # Count number of zeros in each column
-    zero_counts = (cleaned_df.iloc[:,:-1] == 0).sum()
-    # Identify columns to drop
+    # Threshold = number of remaining rows
+    threshold = len(cleaned_df)
+    # Count zero values per column
+    zero_counts = (cleaned_df.iloc[:, :-1] == 0).sum()
+    #  Columns where all values == 0 and we drop them
     cols_to_drop = zero_counts[zero_counts == threshold].index
     print(f"Columns dropped ({len(cols_to_drop)}):")
     print(list(cols_to_drop))
-    # Drop those columns
-    df_cleaned = cleaned_df.drop(columns=cols_to_drop)
-    return df_cleaned
+    # Drop columns
+    cleaned_df = cleaned_df.drop(columns=cols_to_drop)
+    return cleaned_df
 
 def count_labels(df):
     label_col = df.columns[-1]  # last column
@@ -106,7 +110,7 @@ def get_highly_correlated_features(df, threshold=0.9):
     return to_drop
 
 
-def drop_highly_correlated_features(df):
+def drop_highly_correlated_features(df, high_corr_cols):
     to_keep = [
         'Subflow Fwd Packets',
         ' Total Backward Packets',
@@ -125,10 +129,8 @@ def drop_highly_correlated_features(df):
     return df_cleaned
 
 df_cleaned = clear_df(df_train)
-print(df_cleaned.info())
-print(df_cleaned.head())
 count_labels(df_cleaned)
 high_corr_cols = get_highly_correlated_features(df_cleaned)
 print(high_corr_cols)
-df_cleaned = drop_highly_correlated_features(df_cleaned)
-heatmap_correlation(df_cleaned)
+df_cleaned = drop_highly_correlated_features(df_cleaned,high_corr_cols)
+print("Positive infinity values: ", (df_cleaned == np.inf).sum())
