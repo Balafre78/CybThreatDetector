@@ -129,8 +129,6 @@ def drop_highly_correlated_features(df, high_corr_cols):
     return df_cleaned
 
 df_cleaned = clear_df(df_train)
-count_labels(df_cleaned)
+# count_labels(df_cleaned) Make the sum of entries per labels
 high_corr_cols = get_highly_correlated_features(df_cleaned)
-print(high_corr_cols)
 df_cleaned = drop_highly_correlated_features(df_cleaned,high_corr_cols)
-print("Positive infinity values: ", (df_cleaned == np.inf).sum())
