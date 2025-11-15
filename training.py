@@ -48,11 +48,11 @@ plt.show()
 
 def plot_feature_importance(model, X, title):
     importances = model.feature_importances_
-    indices = np.argsort(importances)[::-1]
+    index = np.argsort(importances)[::-1]
     features = X.columns
 
     plt.figure(figsize=(12, 10))
-    sns.barplot(x=importances[indices][:20], y=features[indices][:20])
+    sns.barplot(x=importances[index][:20], y=features[index][:20])
     plt.title(title + " - Top 20 Features")
     plt.xlabel("Importance")
     plt.ylabel("Feature")
