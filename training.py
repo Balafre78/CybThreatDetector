@@ -20,6 +20,8 @@ from preprocessing import DEFAULT_CLEAN_DATASET_PATH
 MODELS_DIR = Path("models")
 TEST_SPLIT_FILE = "test_split.joblib"
 
+def _log(message: str) -> None:
+    print(f"\033[1;34m[\033[0;36mTraining\033[1;34m]\033[0m {message}\033[0m")
 
 @dataclass(slots=True)
 class ModelArtifacts:
@@ -32,38 +34,37 @@ class ModelArtifacts:
 def load_clean_dataset(csv_path: Path | str = DEFAULT_CLEAN_DATASET_PATH) -> Tuple[pd.DataFrame, pd.Series]:
     csv_path = Path(csv_path)
     if not csv_path.exists():
-        raise FileNotFoundError(
-            f"[Training] Clean dataset file not found at {csv_path.resolve()}. Run preprocessing first."
-        )
-    print(f"[Training] Loading cleaned dataset from {csv_path.resolve()}")
+        raise FileNotFoundError(f"[Training] Clean dataset file not found at {csv_path.resolve()}. Run preprocessing first.")
+    _log(f"\033[1;33mLoading cleaned dataset from {csv_path.resolve()}")
     df = pd.read_csv(csv_path)
     return df.iloc[:, :-1], df.iloc[:, -1]
 
 
 def train_models(
-    *,
     csv_path: Path | str = DEFAULT_CLEAN_DATASET_PATH,
     models_dir: Path | str = MODELS_DIR,
     test_size: float = 0.2,
     random_state: int = 39,
 ) -> ModelArtifacts:
     X, y = load_clean_dataset(csv_path)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state,
-        shuffle=True, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size,
+        random_state=random_state, shuffle=True, stratify=y
+    )
 
-    print("[Training] Training DecisionTreeClassifier...")
+    _log("Training DecisionTreeClassifier...")
     dt_model = DecisionTreeClassifier(max_depth=None, random_state=random_state)
     start = time.time()
     dt_model.fit(X_train, y_train)
     end = time.time()
-    print(f"[Training] DecisionTreeClassifier training completed in {end - start:.2f} seconds.")
+    _log(f"\033[1;32mDecisionTreeClassifier training completed in {end - start:.2f} seconds.")
 
-    print("[Training] Training RandomForestClassifier...")
+    _log("Training RandomForestClassifier...")
     rf_model = RandomForestClassifier(n_estimators=200, class_weight="balanced", random_state=random_state)
     start = time.time()
     rf_model.fit(X_train, y_train)
     end = time.time()
-    print(f"[Training] RandomForestClassifier training completed in {end - start:.2f} seconds.")
+    _log(f"\033[1;32mRandomForestClassifier training completed in {end - start:.2f} seconds.")
 
     artifacts = ModelArtifacts(decision_tree=dt_model, random_forest=rf_model, X_test=X_test, y_test=y_test)
 
@@ -72,7 +73,7 @@ def train_models(
     joblib.dump(dt_model, models_path / "decision_tree.joblib")
     joblib.dump(rf_model, models_path / "random_forest.joblib")
     joblib.dump({"X_test": X_test, "y_test": y_test}, models_path / TEST_SPLIT_FILE)
-    print(f"[Training] Saved models to {models_path.resolve()}")
+    _log(f"Saved models to {models_path.resolve()}")
 
     return artifacts
 
@@ -85,9 +86,7 @@ def load_model_artifacts_from_disk(models_dir: Path | str = MODELS_DIR) -> Model
 
     missing = [str(path) for path in (dt_path, rf_path, split_path) if not path.exists()]
     if missing:
-        raise FileNotFoundError(
-            "Missing trained model artifacts. Expected files: " + ", ".join(missing)
-        )
+        raise FileNotFoundError("Missing trained model artifacts. Expected files: " + ", ".join(missing))
 
     dt_model: DecisionTreeClassifier = joblib.load(dt_path)
     rf_model: RandomForestClassifier = joblib.load(rf_path)
@@ -98,12 +97,7 @@ def load_model_artifacts_from_disk(models_dir: Path | str = MODELS_DIR) -> Model
     if X_test is None or y_test is None:
         raise ValueError("Corrupted test split payload; expected keys 'X_test' and 'y_test'.")
 
-    return ModelArtifacts(
-        decision_tree=dt_model,
-        random_forest=rf_model,
-        X_test=X_test,
-        y_test=y_test,
-    )
+    return ModelArtifacts(decision_tree=dt_model, random_forest=rf_model, X_test=X_test, y_test=y_test)
 
 
 def evaluate_models(artifacts: ModelArtifacts) -> Dict[str, Dict[str, float]]:
@@ -149,3 +143,4 @@ def plot_feature_importance(model, X, title, top_n=15):
     plt.ylabel("Feature", fontsize=14)
     plt.tight_layout()
     plt.show()
+
