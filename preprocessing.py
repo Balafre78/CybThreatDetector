@@ -1,45 +1,31 @@
+import time
+
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-df_train = pd.read_csv("./cyberdataset_train.csv")
-pd.set_option('display.max_rows', None)  # Display all rows
-pd.set_option('display.max_columns', None)  # Display all columns
+RAW_DATASET_PATH = Path("data/cyberdataset_concat.csv")
+DEFAULT_CLEAN_DATASET_PATH = Path("data/cyberdataset_clean.csv")
+
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
-def check_column_types(df):
-    for column in df.columns:
-        expected_type = df[column].dtype
 
-        print(f"\nColumn verification: '{column}' (expected type: {expected_type}) ---")
-
-        invalid_rows = []
-
-        for idx, value in df[column].items():
-            if pd.api.types.is_numeric_dtype(expected_type):
-                if not pd.api.types.is_number(value) and not pd.isna(value):
-                    invalid_rows.append((idx, value))
-            elif pd.api.types.is_string_dtype(expected_type):
-                if not isinstance(value, str) and not pd.isna(value):
-                    invalid_rows.append((idx, value))
-        if invalid_rows:
-            print(f"Invalid value found ({len(invalid_rows)}):")
-            for row in invalid_rows[:5]:
-                print(f"Line {row[0]} : {row[1]}")
-        else:
-            print("All values have the good type")
-
-# Compute the correlation matrix
-df_features = df_train.iloc[:, :-1]
-corr_matrix = df_features.corr()
-# Display the numeric correlation values
-#print("=== Correlation Matrix ===")
-#print(corr_matrix)
+def load_raw_dataset(csv_path: Path | str = RAW_DATASET_PATH) -> pd.DataFrame:
+    csv_path = Path(csv_path)
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"[Preprocessing] Raw dataset file not found at {csv_path.resolve()}. Run the data loader first."
+        )
+    print(f"[Preprocessing] Loading raw dataset from {csv_path.resolve()}")
+    return pd.read_csv(csv_path)
 
 
-def heatmap_correlation(df):
+def heatmap_correlation(df: pd.DataFrame) -> None:
     """
     Plots a correlation heatmap for all numeric columns in a DataFrame.
     - Automatically filters non-numeric columns
@@ -70,11 +56,16 @@ def heatmap_correlation(df):
     plt.tight_layout()
     plt.show()
 
-def clear_df(df):
+
+def clear_df(df: pd.DataFrame) -> pd.DataFrame:
+    print("[Preprocessing] Cleaning dataset...")
     # Drop rows with NaN
+    print("\tDropping rows with NaN values...")
     cleaned_df = df.dropna()
     #  Remove rows containing +inf or -inf
-    cleaned_df = cleaned_df[~np.isinf(cleaned_df.select_dtypes(include=[np.number])).any(axis=1)]
+    print("\tDropping rows with int values...")
+    numeric_cols = cleaned_df.select_dtypes(include=[np.number])
+    cleaned_df = cleaned_df[~np.isinf(numeric_cols).any(axis=1)]
     cleaned_df = cleaned_df.reset_index(drop=True)
     # Threshold = number of remaining rows
     threshold = len(cleaned_df)
@@ -82,22 +73,25 @@ def clear_df(df):
     zero_counts = (cleaned_df.iloc[:, :-1] == 0).sum()
     #  Columns where all values == 0 and we drop them
     cols_to_drop = zero_counts[zero_counts == threshold].index
-    print(f"Columns dropped ({len(cols_to_drop)}):")
+    print(f"\tDropping zero full columns ({len(cols_to_drop)})...")
     print(list(cols_to_drop))
     # Drop columns
     cleaned_df = cleaned_df.drop(columns=cols_to_drop)
     return cleaned_df
 
-def count_labels(df):
+
+def count_labels(df: pd.DataFrame) -> None:
     label_col = df.columns[-1]  # last column
     counts = df[label_col].value_counts()
     print("\n### Label counts ###")
     print(counts)
 
-def get_highly_correlated_features(df, threshold=0.9):
+
+def get_highly_correlated_features(df: pd.DataFrame, threshold: float = 0.9) -> list[str]:
+    print(f"[Preprocessing] Searching columns with correlation > {threshold}...")
     # df supposed to be cleared already
-    df = df.iloc[:,:-1]
-    corr_matrix = df.corr().abs()
+    features_only = df.iloc[:, :-1]
+    corr_matrix = features_only.corr().abs()
     upper_triangle = corr_matrix.where(
         np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
     )
@@ -105,12 +99,10 @@ def get_highly_correlated_features(df, threshold=0.9):
     to_drop = [
         column for column in upper_triangle.columns if any(upper_triangle[column] > threshold)
     ]
-    print(f"Columns with correlation > {threshold}:")
-    print(to_drop)
     return to_drop
 
 
-def drop_highly_correlated_features(df, high_corr_cols):
+def drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str]) -> pd.DataFrame:
     to_keep = [
         'Subflow Fwd Packets',
         ' Total Backward Packets',
@@ -123,12 +115,28 @@ def drop_highly_correlated_features(df, high_corr_cols):
     ]
     # Build the drop list (highly correlated columns not in to_keep)
     to_drop = [col for col in high_corr_cols if col not in to_keep]
-    print(f"Columns dropped ({len(to_drop)}): {to_drop}")
+    print(f"\tDropping columns ({len(to_drop)})...")
+    print(list(to_drop))
     # Drop them
     df_cleaned = df.drop(columns=to_drop, errors='ignore')
     return df_cleaned
 
-df_cleaned = clear_df(df_train)
-# count_labels(df_cleaned) Make the sum of entries per labels
-high_corr_cols = get_highly_correlated_features(df_cleaned)
-df_cleaned = drop_highly_correlated_features(df_cleaned,high_corr_cols)
+
+def preprocess_dataset(
+    *,
+    raw_csv: Path | str = RAW_DATASET_PATH,
+    output_csv: Path | str = DEFAULT_CLEAN_DATASET_PATH,
+) -> str:
+    start = time.time()
+    df_train = load_raw_dataset(raw_csv)
+    df_cleaned = clear_df(df_train)
+    #heatmap_correlation(df_cleaned)
+    high_corr_cols = get_highly_correlated_features(df_cleaned)
+    df_cleaned = drop_highly_correlated_features(df_cleaned, high_corr_cols)
+    destination = Path(output_csv)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    df_cleaned.to_csv(destination, index=False)
+    print(f"[Preprocessing] Saved cleaned dataset to {destination.resolve()}")
+    end = time.time()
+    print(f"[Preprocessing] Preprocessing completed in {end - start:.2f} seconds.")
+    return str(destination)
