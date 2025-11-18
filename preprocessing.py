@@ -117,6 +117,30 @@ def drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str])
     return df_cleaned
 
 
+def oversample(df, label_col, min_samples=2000, random_state=39):
+    np.random.seed(random_state)
+    df_balanced = df.copy()
+    new_rows = []
+    value_counts = df_balanced[label_col].value_counts()
+    print("\n=== Oversampling Summary ===")
+    for label, count in value_counts.items():
+        if count < min_samples:
+            needed = min_samples - count
+            print(f"Class '{label}': {count} → {min_samples}   (adding {needed})")
+            class_rows = df_balanced[df_balanced[label_col] == label]
+            duplicated_rows = class_rows.sample(
+                n=needed,
+                replace=True,
+                random_state=random_state
+            )
+            new_rows.append(duplicated_rows)
+    if new_rows:
+        df_balanced = pd.concat([df_balanced] + new_rows, ignore_index=True)
+    # Shuffle the dataframe
+    df_balanced = df_balanced.sample(frac=1.0, random_state=random_state).reset_index(drop=True)
+    return df_balanced
+
+
 def preprocess_dataset(
     raw_csv: Path | str = RAW_DATASET_PATH,
     output_csv: Path | str = DEFAULT_CLEAN_DATASET_PATH,
@@ -127,6 +151,7 @@ def preprocess_dataset(
     #heatmap_correlation(df_cleaned)
     high_corr_cols = get_highly_correlated_features(df_cleaned)
     df_cleaned = drop_highly_correlated_features(df_cleaned, high_corr_cols)
+    df_cleaned = oversample(df_cleaned, label_col=df_cleaned.columns[-1])
     destination = Path(output_csv)
     destination.parent.mkdir(parents=True, exist_ok=True)
     df_cleaned.to_csv(destination, index=False)
