@@ -26,7 +26,7 @@ def download_and_merge_dataset(
     dataset_id: str = DATASET_ID,
     output_csv: Path | str = DEFAULT_OUTPUT_CSV,
     force_download: bool = False,
-) -> str:
+):
     """Download the Kaggle dataset, merge CSV files, and persist a single training file.
 
     Args:
@@ -42,7 +42,7 @@ def download_and_merge_dataset(
     destination = Path(output_csv)
     if destination.exists() and not force_download:
         _log(f"Using cached dataset at {destination.resolve()}")
-        return str(destination)
+        return
 
     _log(f"\033[1;33mDownloading dataset '{dataset_id}' via kagglehub...")
     try:
@@ -64,4 +64,3 @@ def download_and_merge_dataset(
     _log(f"Saved merged dataset to {destination.resolve()}")
     end = time.time()
     _log(f"\033[1;32mDataset load completed in {end - start:.2f} seconds.")
-    return str(destination)

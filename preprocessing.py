@@ -1,4 +1,5 @@
 import time
+from typing import Tuple
 
 import pandas as pd
 import numpy as np
@@ -6,13 +7,17 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-RAW_DATASET_PATH = Path("data/cyberdataset_concat.csv")
-DEFAULT_CLEAN_DATASET_PATH = Path("data/cyberdataset_clean.csv")
+from pandas import Index
+from sklearn.model_selection import train_test_split
+
+RAW_DATASET_PATH = Path("data/cyberdataset_raw.csv")
+DEFAULT_TRAIN_DATASET_PATH = Path("data/cyberdataset_train.csv")
+DEFAULT_TEST_DATASET_PATH = Path("data/cyberdataset_test.csv")
 
 def _log(message: str, end: str = '\n') -> None:
     print(f"\033[1;34m[\033[0;36mPreprocessing\033[1;34m]\033[0m {message}\033[0m", end=end)
 
-def load_raw_dataset(csv_path: Path | str = RAW_DATASET_PATH) -> pd.DataFrame:
+def _load_raw_dataset(csv_path: Path | str = RAW_DATASET_PATH) -> pd.DataFrame:
     csv_path = Path(csv_path)
     if not csv_path.exists():
         raise FileNotFoundError(f"[Preprocessing] Raw dataset file not found at {csv_path.resolve()}. Run the data loader first.")
@@ -20,7 +25,7 @@ def load_raw_dataset(csv_path: Path | str = RAW_DATASET_PATH) -> pd.DataFrame:
     return pd.read_csv(csv_path)
 
 
-def heatmap_correlation(df: pd.DataFrame) -> None:
+def _heatmap_correlation(df: pd.DataFrame) -> None:
     """
     Plots a correlation heatmap for all numeric columns in a DataFrame.
     - Automatically filters non-numeric columns
@@ -57,7 +62,7 @@ def heatmap_correlation(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def clear_df(df: pd.DataFrame) -> pd.DataFrame:
+def _clear_df(df: pd.DataFrame) -> pd.DataFrame:
     # Drop rows with NaN
     _log("Dropping rows with NaN values...")
     cleaned_df = df.dropna()
@@ -79,14 +84,14 @@ def clear_df(df: pd.DataFrame) -> pd.DataFrame:
     return cleaned_df
 
 
-def count_labels(df: pd.DataFrame) -> None:
+def _count_labels(df: pd.DataFrame) -> None:
     label_col = df.columns[-1]  # last column
     counts = df[label_col].value_counts()
     _log("Label distribution:")
     print(counts)
 
 
-def get_highly_correlated_features(df: pd.DataFrame, threshold: float = 0.9) -> list[str]:
+def _get_highly_correlated_features(df: pd.DataFrame, threshold: float = 0.9) -> list[str]:
     _log(f"Searching columns with correlation > {threshold}...")
     # df supposed to be cleared already
     features_only = df.iloc[:, :-1]
@@ -97,7 +102,7 @@ def get_highly_correlated_features(df: pd.DataFrame, threshold: float = 0.9) -> 
     return to_drop
 
 
-def drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str]) -> pd.DataFrame:
+def _drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str]) -> pd.DataFrame:
     to_keep = [
         'Subflow Fwd Packets',
         ' Total Backward Packets',
@@ -116,8 +121,21 @@ def drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str])
     df_cleaned = df.drop(columns=to_drop, errors='ignore')
     return df_cleaned
 
+def _split_df(
+        df: pd.DataFrame,
+        label_col: Index,
+        test_size: float = 0.2,
+        random_state: int = None
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    train_df, test_df = train_test_split(df, test_size=test_size, random_state=random_state, stratify=df[label_col])
+    return train_df.reset_index(drop=True), test_df.reset_index(drop=True)
 
-def oversample(df, label_col, min_samples=2000, random_state=39):
+def _oversample_df(
+        df: pd.DataFrame,
+        label_col: Index,
+        min_samples: int = 2000,
+        random_state: int = None
+) -> pd.DataFrame:
     np.random.seed(random_state)
     df_balanced = df.copy()
     new_rows = []
@@ -143,20 +161,29 @@ def oversample(df, label_col, min_samples=2000, random_state=39):
 
 def preprocess_dataset(
     raw_csv: Path | str = RAW_DATASET_PATH,
-    output_csv: Path | str = DEFAULT_CLEAN_DATASET_PATH,
-) -> str:
+    test_size: float = 0.2,
+    output_train_csv: Path | str = DEFAULT_TRAIN_DATASET_PATH,
+    output_test_csv: Path | str = DEFAULT_TEST_DATASET_PATH
+):
     start = time.time()
-    df_raw = load_raw_dataset(raw_csv)
-    df_cleaned = clear_df(df_raw)
+    df_raw = _load_raw_dataset(raw_csv)
+    df_cleaned = _clear_df(df_raw)
     #heatmap_correlation(df_cleaned)
-    high_corr_cols = get_highly_correlated_features(df_cleaned)
-    df_cleaned = drop_highly_correlated_features(df_cleaned, high_corr_cols)
-    df_cleaned = oversample(df_cleaned, label_col=df_cleaned.columns[-1])
-    destination = Path(output_csv)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    df_cleaned.to_csv(destination, index=False)
-    _log(f"Saved cleaned dataset to {destination.resolve()}")
-    count_labels(df_cleaned)
+    high_corr_cols = _get_highly_correlated_features(df_cleaned)
+    df_cleaned = _drop_highly_correlated_features(df_cleaned, high_corr_cols)
+    df_train, df_test = _split_df(df_cleaned, label_col=df_cleaned.columns[-1], test_size=test_size)
+    df_train = _oversample_df(df_train, label_col=df_cleaned.columns[-1])
+
+    dest_train = Path(output_train_csv)
+    dest_train.parent.mkdir(parents=True, exist_ok=True)
+    df_train.to_csv(dest_train, index=False)
+    _log(f"Saved training dataset to {dest_train.resolve()}")
+
+    dest_test = Path(output_test_csv)
+    dest_test.parent.mkdir(parents=True, exist_ok=True)
+    df_test.to_csv(dest_test, index=False)
+    _log(f"Saved testing dataset to {dest_test.resolve()}")
+
+    _count_labels(df_train)
     end = time.time()
     _log(f"\033[1;32mPreprocessing completed in {end - start:.2f} seconds.")
-    return str(destination)

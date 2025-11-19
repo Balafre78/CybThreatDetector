@@ -1,9 +1,13 @@
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 from loading import download_and_merge_dataset
-from preprocessing import DEFAULT_CLEAN_DATASET_PATH, RAW_DATASET_PATH, preprocess_dataset
-from training import MODELS_DIR, TEST_SPLIT_FILE, ModelArtifacts, evaluate_models, load_model_artifacts_from_disk, train_models
+from preprocessing import RAW_DATASET_PATH, preprocess_dataset, DEFAULT_TRAIN_DATASET_PATH, DEFAULT_TEST_DATASET_PATH
+from testing import evaluate_model
+from training import MODELS_DIR, load_models, train_models
 
 
 class WorkflowStep(Enum):
@@ -24,17 +28,20 @@ class WorkflowStep(Enum):
 class WorkflowManager:
     def __init__(self) -> None:
         self.raw_dataset_path = RAW_DATASET_PATH
-        self.clean_dataset_path = DEFAULT_CLEAN_DATASET_PATH
+        self.train_dataset_path = DEFAULT_TRAIN_DATASET_PATH
+        self.test_dataset_path = DEFAULT_TEST_DATASET_PATH
         self.models_dir = MODELS_DIR
+
         self.data_loaded: bool = self.raw_dataset_path.exists()
-        self.data_preprocessed: bool = self.clean_dataset_path.exists()
-        self.model_trained: bool = self._has_trained_models()
+        self.data_preprocessed: bool = self.train_dataset_path.exists() and self.test_dataset_path.exists()
+        self.models_trained: bool = self._has_trained_models()
         self.data_tested: bool = False
-        self.model_artifacts: Optional[ModelArtifacts] = None
-        self.latest_metrics: Optional[Dict[str, Dict[str, float]]] = None
+
+        self.models: Optional[Tuple[DecisionTreeClassifier, RandomForestClassifier]] = None
+        self.latest_metrics: Optional[Dict[str, Dict[str, float]]] = {}
 
     def _has_trained_models(self) -> bool:
-        required = ("decision_tree.joblib", "random_forest.joblib", TEST_SPLIT_FILE)
+        required = ("decision_tree.joblib", "random_forest.joblib")
         return all((self.models_dir / filename).exists() for filename in required)
 
     def is_step_unlocked(self, step: WorkflowStep) -> bool:
@@ -46,7 +53,7 @@ class WorkflowManager:
             case WorkflowStep.TRAIN_MODEL:
                 return self.data_preprocessed
             case WorkflowStep.TEST_MODEL:
-                return self.model_trained
+                return self.models_trained
 
     def execute_step(self, step: WorkflowStep):
         if not self.is_step_unlocked(step):
@@ -59,29 +66,30 @@ class WorkflowManager:
         }
         return actions[step]()
 
-    def _run_load_data(self) -> str:
-        result_path = download_and_merge_dataset(output_csv=self.raw_dataset_path)
+    def _run_load_data(self):
+        download_and_merge_dataset(output_csv=self.raw_dataset_path)
         self.data_loaded = True
-        return result_path
 
-    def _run_preprocess_data(self) -> str:
-        result_path = preprocess_dataset(raw_csv=self.raw_dataset_path, output_csv=self.clean_dataset_path)
+    def _run_preprocess_data(self):
+        preprocess_dataset(
+            raw_csv=self.raw_dataset_path,
+            output_train_csv=self.train_dataset_path,
+            output_test_csv=self.test_dataset_path
+        )
         self.data_preprocessed = True
-        return result_path
 
-    def _run_train_models(self) -> ModelArtifacts:
-        artifacts = train_models(csv_path=self.clean_dataset_path, models_dir=self.models_dir)
-        self.model_trained = True
-        self.model_artifacts = artifacts
-        return artifacts
+    def _run_train_models(self):
+        self.models = train_models(train_csv_path=self.train_dataset_path, models_dir=self.models_dir)
+        self.models_trained = True
 
-    def _run_test_models(self) -> Dict[str, Dict[str, float]]:
-        if self.model_artifacts is None:
-            self.model_artifacts = load_model_artifacts_from_disk(models_dir=self.models_dir)
-        metrics = evaluate_models(self.model_artifacts)
+    def _run_test_models(self):
+        if self.models is None:
+            self.models = load_models(models_dir=self.models_dir)
+        for model in self.models:
+            model_name = type(model).__name__
+            metrics = evaluate_model(model=model, model_name=model_name, test_csv_path=self.test_dataset_path)
+            #self.latest_metrics[model_name] = metrics
         self.data_tested = True
-        self.latest_metrics = metrics
-        return metrics
 
 
 def _format_step_line(index: int, step: WorkflowStep, *, done: bool, unlocked: bool) -> str:
@@ -100,7 +108,7 @@ def _render_menu(manager: WorkflowManager) -> None:
     rows = [
         (WorkflowStep.LOAD_DATA, manager.data_loaded),
         (WorkflowStep.PREPROCESS_DATA, manager.data_preprocessed),
-        (WorkflowStep.TRAIN_MODEL, manager.model_trained),
+        (WorkflowStep.TRAIN_MODEL, manager.models_trained),
         (WorkflowStep.TEST_MODEL, manager.data_tested),
     ]
     for idx, (step, done) in enumerate(rows, start=1):
