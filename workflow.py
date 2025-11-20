@@ -1,151 +1,147 @@
-from enum import Enum
-from typing import Dict, Optional, Tuple
+from pathlib import Path
+from typing import Dict, Optional, Callable
 
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 
+from disk import load_dataset, load_model
 from loading import download_and_merge_dataset
 from preprocessing import RAW_DATASET_PATH, preprocess_dataset, DEFAULT_TRAIN_DATASET_PATH, DEFAULT_TEST_DATASET_PATH
 from testing import evaluate_model
-from training import MODELS_DIR, load_models, train_models
-
-
-class WorkflowStep(Enum):
-    LOAD_DATA = 1
-    PREPROCESS_DATA = 2
-    TRAIN_MODEL = 3
-    TEST_MODEL = 4
-    @property
-    def label(self) -> str:
-        return {
-            WorkflowStep.LOAD_DATA: "Load data",
-            WorkflowStep.PREPROCESS_DATA: "Preprocess data",
-            WorkflowStep.TRAIN_MODEL: "Train data",
-            WorkflowStep.TEST_MODEL: "Test data",
-        }[self]
+from training import train_model, DEFAULT_DECISION_TREE_MODEL_PATH, DEFAULT_RANDOM_FOREST_MODEL_PATH
 
 
 class WorkflowManager:
-    def __init__(self) -> None:
-        self.raw_dataset_path = RAW_DATASET_PATH
-        self.train_dataset_path = DEFAULT_TRAIN_DATASET_PATH
-        self.test_dataset_path = DEFAULT_TEST_DATASET_PATH
-        self.models_dir = MODELS_DIR
+    def __init__(
+            self,
+            raw_dataset_path: str | Path = RAW_DATASET_PATH,
+            train_dataset_path: str | Path = DEFAULT_TRAIN_DATASET_PATH,
+            test_dataset_path: str | Path = DEFAULT_TEST_DATASET_PATH,
+            decision_tree_model_path: str | Path = DEFAULT_DECISION_TREE_MODEL_PATH,
+            random_forest_model_path: str | Path = DEFAULT_RANDOM_FOREST_MODEL_PATH,
+        ) -> None:
 
-        self.data_loaded: bool = self.raw_dataset_path.exists()
-        self.data_preprocessed: bool = self.train_dataset_path.exists() and self.test_dataset_path.exists()
-        self.models_trained: bool = self._has_trained_models()
-        self.data_tested: bool = False
+        self.raw_dataset_path = raw_dataset_path
+        self.train_dataset_path = train_dataset_path
+        self.test_dataset_path = test_dataset_path
+        self.decision_tree_model_path = decision_tree_model_path
+        self.random_forest_model_path = random_forest_model_path
 
-        self.models: Optional[Tuple[DecisionTreeClassifier, RandomForestClassifier]] = None
+        self.raw_dataset: Optional[pd.DataFrame] = None
+        self.train_dataset: Optional[pd.DataFrame] = None
+        self.test_dataset: Optional[pd.DataFrame] = None
+        self.decision_tree_model: Optional[DecisionTreeClassifier] = None
+        self.random_forest_model: Optional[RandomForestClassifier] = None
+
         self.latest_metrics: Optional[Dict[str, Dict[str, float]]] = {}
+        self._load()
 
-    def _has_trained_models(self) -> bool:
-        required = ("decision_tree.joblib", "random_forest.joblib")
-        return all((self.models_dir / filename).exists() for filename in required)
+    def _load(self):
+        try:
+            self.raw_dataset = load_dataset(self.raw_dataset_path)
+        except FileNotFoundError:
+            self.raw_dataset = None
+        try:
+            self.train_dataset = load_dataset(self.train_dataset_path)
+        except FileNotFoundError:
+            self.train_dataset = None
+        try:
+            self.test_dataset = load_dataset(self.test_dataset_path)
+        except FileNotFoundError:
+            self.test_dataset = None
+        try:
+            self.decision_tree_model = load_model(self.decision_tree_model_path)
+        except FileNotFoundError:
+            self.decision_tree_model = None
+        try:
+            self.random_forest_model = load_model(self.random_forest_model_path)
+        except FileNotFoundError:
+            self.random_forest_model = None
 
-    def is_step_unlocked(self, step: WorkflowStep) -> bool:
-        match step:
-            case WorkflowStep.LOAD_DATA:
-                return True
-            case WorkflowStep.PREPROCESS_DATA:
-                return self.data_loaded
-            case WorkflowStep.TRAIN_MODEL:
-                return self.data_preprocessed
-            case WorkflowStep.TEST_MODEL:
-                return self.models_trained
+    def run_load_data(self):
+        self.raw_dataset = download_and_merge_dataset(output_csv=self.raw_dataset_path)
 
-    def execute_step(self, step: WorkflowStep):
-        if not self.is_step_unlocked(step):
-            raise RuntimeError(f"Step '{step.label}' is locked. Complete the previous step first.")
-        actions = {
-            WorkflowStep.LOAD_DATA: self._run_load_data,
-            WorkflowStep.PREPROCESS_DATA: self._run_preprocess_data,
-            WorkflowStep.TRAIN_MODEL: self._run_train_models,
-            WorkflowStep.TEST_MODEL: self._run_test_models,
-        }
-        return actions[step]()
-
-    def _run_load_data(self):
-        download_and_merge_dataset(output_csv=self.raw_dataset_path)
-        self.data_loaded = True
-
-    def _run_preprocess_data(self):
-        preprocess_dataset(
-            raw_csv=self.raw_dataset_path,
+    def run_preprocess_data(self):
+        self.train_dataset, self.test_dataset = preprocess_dataset(
+            df_raw=self.raw_dataset,
             output_train_csv=self.train_dataset_path,
             output_test_csv=self.test_dataset_path
         )
-        self.data_preprocessed = True
 
-    def _run_train_models(self):
-        self.models = train_models(train_csv_path=self.train_dataset_path, models_dir=self.models_dir)
-        self.models_trained = True
+    def run_train_all_models(self):
+        self.run_train_decision_tree_model()
+        self.run_train_random_forest_model()
 
-    def _run_test_models(self):
-        if self.models is None:
-            self.models = load_models(models_dir=self.models_dir)
-        for model in self.models:
-            model_name = type(model).__name__
-            metrics = evaluate_model(model=model, model_name=model_name, test_csv_path=self.test_dataset_path)
-            #self.latest_metrics[model_name] = metrics
-        self.data_tested = True
+    def run_train_decision_tree_model(self):
+        self.decision_tree_model = train_model(
+            df_train=self.train_dataset,
+            model_name="decision_tree",
+            model_export_path=self.decision_tree_model_path
+        )
+
+    def run_train_random_forest_model(self):
+        self.random_forest_model = train_model(
+            df_train=self.train_dataset,
+            model_name="random_forest",
+            model_export_path=self.decision_tree_model_path
+        )
+
+    def run_test_all_models(self):
+        self.run_test_decision_tree_model()
+        self.run_test_random_forest_model()
+
+    def run_test_decision_tree_model(self):
+        evaluate_model(model=self.decision_tree_model, df_test=self.test_dataset)
+
+    def run_test_random_forest_model(self):
+        evaluate_model(model=self.random_forest_model, df_test=self.test_dataset)
 
 
-def _format_step_line(index: int, step: WorkflowStep, *, done: bool, unlocked: bool) -> str:
+def _format_step_line(index: int, txt: str, *, done: bool, unlocked: bool) -> str:
     if done:
         status = "\033[1;32mDone\033[0m"
     elif unlocked:
         status = "\033[1;33mReady\033[0m"
     else:
         status = "\033[1;31mLocked\033[0m"
-    return f"\u2502{f' {index}. {step.label}'.ljust(22)}{f'[{status}] \u2502'.rjust(22)}"
+    return f"\u2502{f' {index}. {txt}'.ljust(22)}{f'[{status}] \u2502'.rjust(22)}"
 
 
-def _render_menu(manager: WorkflowManager) -> None:
+def _render_menu(actions: Dict[str, Dict[str, str | Callable]]) -> None:
     print(f'\u250C{32*'\u2500'}\u2510')
     print("\u2502 Cyber Threat Detector Workflow \u2502")
-    rows = [
-        (WorkflowStep.LOAD_DATA, manager.data_loaded),
-        (WorkflowStep.PREPROCESS_DATA, manager.data_preprocessed),
-        (WorkflowStep.TRAIN_MODEL, manager.models_trained),
-        (WorkflowStep.TEST_MODEL, manager.data_tested),
+    """rows = [
+        (WorkflowStep.LOAD_DATA, manager.raw_dataset is not None),
+        (WorkflowStep.PREPROCESS_DATA, manager.train_dataset is not None and manager.test_dataset is not None),
+        (WorkflowStep.TRAIN_MODEL, manager.models is not None),
+        (WorkflowStep.TEST_MODEL, False),
     ]
     for idx, (step, done) in enumerate(rows, start=1):
-        unlocked = manager.is_step_unlocked(step)
-        print(_format_step_line(idx, step, done=done, unlocked=unlocked))
+        unlocked = manager.can_execute(step)
+        print(_format_step_line(idx, step.label, done=done, unlocked=unlocked))"""
+    for key, value in actions.items():
+        print(f'\u2502 {key}. {value["name"]}'.ljust(30) + '\u2502')
     print(f'\u2514{32*'\u2500'}\u2518')
-    if manager.latest_metrics:
-        print("\nLatest metrics:")
-        for model_name, metrics in manager.latest_metrics.items():
-            formatted = ", ".join(
-                f"{key}={value:.4f}" for key, value in metrics.items()
-            )
-            print(f" - {model_name}: {formatted}")
 
 def run_cli() -> None:
     manager = WorkflowManager()
+    actions = {
+        "1": { "name": "Load data", "func": manager.run_load_data},
+        "2": { "name": "Preprocess data", "func": manager.run_preprocess_data },
+        "3": { "name": "Train decision tree model", "func": manager.run_train_decision_tree_model },
+        "4": { "name": "Train random forest model", "func": manager.run_train_random_forest_model },
+        "5": { "name": "Train all models", "func": manager.run_train_all_models},
+        "6": { "name": "Test decision tree model", "func": manager.run_test_decision_tree_model},
+        "7": { "name": "Test random forest model", "func": manager.run_test_decision_tree_model},
+        "8": { "name": "Test all models", "func": manager.run_test_all_models },
+        "q": { "name": "Quit", "func": lambda: exit(0) },
+    }
     print("Cyber Threat Detector interactive workflow.\nPress Ctrl+C to exit at any time.")
     while True:
-        try:
-            _render_menu(manager)
-            user_choice = input("Enter 1-4 or 'q' to quit ❯ ").strip().lower()
-            if user_choice in {"q", "quit", "exit"}:
-                print("Exiting workflow. Goodbye!")
-                break
-            try:
-                step = WorkflowStep(int(user_choice))
-            except (ValueError, KeyError):
-                print("Invalid selection. Please choose a number between 1 and 4 or 'q' to quit.")
-                continue
-            try:
-                manager.execute_step(step)
-            except RuntimeError as exc:
-                print(f"[Warning] {exc}")
-                continue
-            except Exception as exc:  # pragma: no cover - surfaces runtime issues to user
-                print(f"[Error] {exc}")
-                continue
-        except KeyboardInterrupt:
-            print("\nInterrupted. Exiting workflow.")
-            break
+        _render_menu(actions)
+        user_choice = input("Enter an option ❯ ").strip().lower()
+        if user_choice not in actions.keys():
+            print("Invalid selection.")
+            continue
+        actions[user_choice]["func"]()

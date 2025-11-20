@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import Tuple, Dict
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -8,33 +7,19 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 from sklearn.tree import DecisionTreeClassifier
 
-from preprocessing import DEFAULT_TEST_DATASET_PATH
-
 
 def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mTesting\033[1;34m]\033[0m {message}\033[0m")
 
 
-def _load_test_dataset(
-        csv_path: Path | str
-) -> Tuple[pd.DataFrame, pd.Series]:
-    csv_path = Path(csv_path)
-    if not csv_path.exists():
-        raise FileNotFoundError(f"[Testing] Testing dataset file not found at {csv_path.resolve()}. Run preprocessing first.")
-    _log(f"\033[1;33mLoading testing dataset from {csv_path.resolve()}")
-    df = pd.read_csv(csv_path)
-    return df.iloc[:, :-1], df.iloc[:, -1]
-
-
 def evaluate_model(
         model: DecisionTreeClassifier | RandomForestClassifier,
-        model_name: str,
-        test_csv_path: Path | str = DEFAULT_TEST_DATASET_PATH,
+        df_test: pd.DataFrame,
 ) -> Dict[str, float]:
-    X_test, y_test = _load_test_dataset(test_csv_path)
+    X_test, y_test = df_test.iloc[:, :-1], df_test.iloc[:, -1]
 
     metrics: Dict[str, float] = {}
-    _log(f"Evaluating {model_name}...")
+    _log(f"Evaluating {type(model).__name__}...")
     y_pred = model.predict(X_test)
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),

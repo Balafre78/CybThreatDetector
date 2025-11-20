@@ -21,28 +21,17 @@ def _collect_csv_files(root_path: str) -> List[str]:
     return csv_files
 
 
-def download_and_merge_dataset(
-    *,
-    dataset_id: str = DATASET_ID,
-    output_csv: Path | str = DEFAULT_OUTPUT_CSV,
-    force_download: bool = False,
-):
+def download_and_merge_dataset(output_csv: Path | str, dataset_id: str = DATASET_ID) -> pd.DataFrame:
     """Download the Kaggle dataset, merge CSV files, and persist a single training file.
-
     Args:
-        dataset_id: Kaggle identifier for the dataset.
         output_csv: Destination path for the merged CSV.
-        force_download: When True, always redownload and rebuild the CSV.
-
+        dataset_id: Kaggle identifier for the dataset.
     Returns:
-        The string path to the merged CSV on disk.
+        The raw dataframe to be preprocessed.
     """
 
     start = time.time()
     destination = Path(output_csv)
-    if destination.exists() and not force_download:
-        _log(f"Using cached dataset at {destination.resolve()}")
-        return
 
     _log(f"\033[1;33mDownloading dataset '{dataset_id}' via kagglehub...")
     try:
@@ -64,3 +53,4 @@ def download_and_merge_dataset(
     _log(f"Saved merged dataset to {destination.resolve()}")
     end = time.time()
     _log(f"\033[1;32mDataset load completed in {end - start:.2f} seconds.")
+    return merged_df
