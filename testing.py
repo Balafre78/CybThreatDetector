@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Tuple, Dict
-
+import joblib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -38,19 +38,21 @@ def evaluate_model(
     X_test, y_test = _load_test_dataset(test_csv_path)
     metrics: Dict[str, float] = {}
     _log(f"Evaluating {model_name}...")
+    le = joblib.load('./models/label_encoder.joblib')
+    y_pred_en= model.predict(X_test)
+    y_pred = le.inverse_transform(y_pred_en)
 
-    y_pred= model.predict(LabelEncoder().fit_transform(y_test))
     metrics = {
-        "accuracy": accuracy_score(y_test, LabelEncoder().inverse_transform(y_pred)),
-        "f1_macro": f1_score(y_test, LabelEncoder().inverse_transform(y_pred), average="macro"),
-        "f1_weighted": f1_score(y_test, LabelEncoder().inverse_transform(y_pred), average="weighted"),
+        "accuracy": accuracy_score(y_test, y_pred),
+        "f1_macro": f1_score(y_test, y_pred, average="macro"),
+        "f1_weighted": f1_score(y_test, y_pred, average="weighted"),
     }
     print(f"- Accuracy: {metrics['accuracy']:.4f}")
     print(f"- F1 Macro: {metrics['f1_macro']:.4f}")
     print(f"- F1 Weighted: {metrics['f1_weighted']:.4f}")
     #print("Classification Report:\n", classification_report(y_test, y_pred))
     labels = sorted(y_test.unique())
-    cm = confusion_matrix(y_test, LabelEncoder().inverse_transform(y_pred), labels=labels)
+    cm = confusion_matrix(y_test, y_pred, labels=labels)
     #print("Confusion Matrix:")
     #print(cm)
     return metrics
