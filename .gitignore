@@ -18,6 +18,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 .env
 .envrc
+.idea/
 .venv
 env/
 venv/

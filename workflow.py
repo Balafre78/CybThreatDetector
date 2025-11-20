@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier
 
 from loading import download_and_merge_dataset
 from preprocessing import RAW_DATASET_PATH, preprocess_dataset, DEFAULT_TRAIN_DATASET_PATH, DEFAULT_TEST_DATASET_PATH
@@ -37,11 +38,11 @@ class WorkflowManager:
         self.models_trained: bool = self._has_trained_models()
         self.data_tested: bool = False
 
-        self.models: Optional[Tuple[DecisionTreeClassifier, RandomForestClassifier]] = None
+        self.models: Optional[XGBClassifier] = None
         self.latest_metrics: Optional[Dict[str, Dict[str, float]]] = {}
 
     def _has_trained_models(self) -> bool:
-        required = ("decision_tree.joblib", "random_forest.joblib")
+        required = ["XGBoost.joblib"]
         return all((self.models_dir / filename).exists() for filename in required)
 
     def is_step_unlocked(self, step: WorkflowStep) -> bool:
@@ -85,10 +86,9 @@ class WorkflowManager:
     def _run_test_models(self):
         if self.models is None:
             self.models = load_models(models_dir=self.models_dir)
-        for model in self.models:
-            model_name = type(model).__name__
-            metrics = evaluate_model(model=model, model_name=model_name, test_csv_path=self.test_dataset_path)
-            #self.latest_metrics[model_name] = metrics
+        model_name = type(self.models).__name__
+        metrics = evaluate_model(model=self.models, model_name=model_name, test_csv_path=self.test_dataset_path)
+        #self.latest_metrics[model_name] = metrics
         self.data_tested = True
 
 

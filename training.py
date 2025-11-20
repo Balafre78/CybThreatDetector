@@ -8,10 +8,14 @@ import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder
+from xgboost import XGBClassifier
 
 from preprocessing import DEFAULT_TRAIN_DATASET_PATH
 
+
 MODELS_DIR = Path("models")
+
 
 def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mTraining\033[1;34m]\033[0m {message}\033[0m")
@@ -32,9 +36,9 @@ def train_models(
     train_csv_path: Path | str = DEFAULT_TRAIN_DATASET_PATH,
     models_dir: Path | str = MODELS_DIR,
     random_state: int = 39,
-) -> Tuple[DecisionTreeClassifier, RandomForestClassifier]:
+) -> XGBClassifier:
     X_train, y_train = _load_train_dataset(train_csv_path)
-
+    """
     _log("Training DecisionTreeClassifier...")
     dt_model = DecisionTreeClassifier(max_depth=None, random_state=random_state)
     start = time.time()
@@ -56,21 +60,44 @@ def train_models(
     _log(f"Saved models to {models_path.resolve()}")
 
     return dt_model, rf_model
+    """
+    _log("Training XGBoostClassifier...")
+    model = XGBClassifier(
+        n_estimators=500,
+        max_depth=12,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        tree_method="hist",
+        device="cuda",   # GPU MODE
+    )
+    start = time.time()
+    # XGBClassifier don't accept string label
+    le = LabelEncoder()
+    model.fit(X_train, le.fit_transform(y_train), verbose=True)
+    end = time.time()
+    _log(f"\033[1;32mXGBClassifier training completed in {end - start:.2f} seconds.")
+
+    models_path = Path(models_dir)
+    models_path.mkdir(parents=True, exist_ok=True)
+    joblib.dump(le, models_path / 'label_encoder.joblib')
+    joblib.dump(model, models_path / "XGBoost.joblib")
+    _log(f"Saved models to {models_path.resolve()}")
+
+    return model
 
 
-def load_models(models_dir: Path | str = MODELS_DIR) -> Tuple[DecisionTreeClassifier, RandomForestClassifier]:
+def load_models(models_dir: Path | str = MODELS_DIR) -> XGBClassifier:
     models_path = Path(models_dir)
     _log(f"\033[1;33mLoading training models from {models_path.resolve()}")
 
-    dt_path = models_path / "decision_tree.joblib"
-    rf_path = models_path / "random_forest.joblib"
+    xgboost_path = models_path / "XGBoost.joblib"
 
-    missing = [str(path) for path in (dt_path, rf_path) if not path.exists()]
+    missing = not xgboost_path.exists()
     if missing:
-        raise FileNotFoundError("Missing trained models. Expected files: " + ", ".join(missing))
+        raise FileNotFoundError("Missing trained models. Expected files: " + ", "+ str(missing))
 
-    dt_model: DecisionTreeClassifier = joblib.load(dt_path)
-    rf_model: RandomForestClassifier = joblib.load(rf_path)
+    model: XGBClassifier = joblib.load(xgboost_path)
 
-    return dt_model, rf_model
+    return model
 
