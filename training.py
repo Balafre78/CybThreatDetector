@@ -27,7 +27,7 @@ def train_model(
 
     model = None
     model_export_path = Path(model_export_path)
-    model_export_path.mkdir(parents=True, exist_ok=True)
+    model_export_path.parent.mkdir(parents=True, exist_ok=True)
 
     match model_name:
         case "decision_tree":
