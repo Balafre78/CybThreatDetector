@@ -1,0 +1,7 @@
+### GET request to example server
+GET http://localhost:8080/models
+
+###
+### POST request to predict endpoint
+POST http://localhost:8080/predict/random_forest
+Content-Type: application/json
