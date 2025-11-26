@@ -3,8 +3,6 @@ from typing import Tuple
 
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 from pathlib import Path
 
 from pandas import Index
@@ -17,45 +15,6 @@ DEFAULT_TEST_DATASET_PATH = Path("data/cyberdataset_test.csv")
 
 def _log(message: str, end: str = '\n') -> None:
     print(f"\033[1;34m[\033[0;36mPreprocessing\033[1;34m]\033[0m {message}\033[0m", end=end)
-
-
-def _heatmap_correlation(df: pd.DataFrame) -> None:
-    """
-    Plots a correlation heatmap for all numeric columns in a DataFrame.
-    - Automatically filters non-numeric columns
-    - Drops rows with NaN values before computing correlations
-    Args:
-        df: DataFrame to plot
-    """
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', None)
-
-    numeric_df = df.select_dtypes(include=np.number)
-    # Compute correlation matrix
-    corr_matrix = numeric_df.corr()
-    # Create mask for upper triangle
-    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
-    # Adjust figure size dynamically based on number of columns
-    n_cols = len(corr_matrix.columns)
-    plt.figure(figsize=(min(0.6 * n_cols, 25), min(0.6 * n_cols, 25)))
-
-    # Draw the heatmap
-    sns.heatmap(
-        corr_matrix,
-        mask=mask,
-        cmap='coolwarm',  # red = positive, blue = negative
-        center=0,
-        annot=False,  # set to True to show numbers
-        square=True,
-        linewidths=0.3,
-        cbar_kws={"shrink": .8}
-    )
-    # Add title and layout adjustments
-    plt.title("Correlation Heatmap", fontsize=30, pad=12)
-    plt.tight_layout()
-    plt.show()
 
 
 def _clear_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -145,12 +104,8 @@ def _drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str]
     df_cleaned = df.drop(columns=to_drop, errors='ignore')
     return df_cleaned
 
-def _split_df(
-        df: pd.DataFrame,
-        label_col: Index,
-        test_size: float = 0.2,
-        random_state: int = None
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _split_df(df: pd.DataFrame, label_col, test_size: float = 0.2, random_state: int = None) \
+        -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     TODO
     Args:
@@ -164,12 +119,7 @@ def _split_df(
     train_df, test_df = train_test_split(df, test_size=test_size, random_state=random_state, stratify=df[label_col])
     return train_df.reset_index(drop=True), test_df.reset_index(drop=True)
 
-def _oversample_df(
-        df: pd.DataFrame,
-        label_col: Index,
-        min_samples: int = 2000,
-        random_state: int = None
-) -> pd.DataFrame:
+def _oversample_df(df: pd.DataFrame, label_col, min_samples: int = 2000, random_state: int = None) -> pd.DataFrame:
     """
     TODO
     Args:
@@ -207,8 +157,7 @@ def preprocess_dataset(
     df_raw: pd.DataFrame,
     test_size: float = 0.2,
     output_train_csv: Path | str = DEFAULT_TRAIN_DATASET_PATH,
-    output_test_csv: Path | str = DEFAULT_TEST_DATASET_PATH
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    output_test_csv: Path | str = DEFAULT_TEST_DATASET_PATH) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     TODO
     Args:
@@ -225,8 +174,8 @@ def preprocess_dataset(
     #heatmap_correlation(df_cleaned)
     high_corr_cols = _get_highly_correlated_features(df_cleaned)
     df_cleaned = _drop_highly_correlated_features(df_cleaned, high_corr_cols)
-    df_train, df_test = _split_df(df_cleaned, label_col=df_cleaned.columns[-1], test_size=test_size)
-    df_train = _oversample_df(df_train, label_col=df_cleaned.columns[-1])
+    df_train, df_test = _split_df(df_cleaned, df_cleaned.columns[-1],test_size=test_size)
+    df_train = _oversample_df(df_train, df_cleaned.columns[-1])
 
     dest_train = Path(output_train_csv)
     dest_train.parent.mkdir(parents=True, exist_ok=True)
