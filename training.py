@@ -11,9 +11,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+
 DEFAULT_DECISION_TREE_MODEL_PATH = Path("models/decision_tree.joblib")
 DEFAULT_RANDOM_FOREST_MODEL_PATH = Path("models/random_forest.joblib")
 DEFAULT_LOGISTIC_REGRESSION_MODEL_PATH = Path("models/logistic_regression.joblib")
+
 
 def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mTraining\033[1;34m]\033[0m {message}\033[0m")

@@ -6,11 +6,14 @@ from typing import List
 import kagglehub
 import pandas as pd
 
-DATASET_ID = "chethuhn/network-intrusion-dataset"
+
+DATASET_ID= "chethuhn/network-intrusion-dataset"
 DEFAULT_OUTPUT_CSV = Path("data/cyberdataset_concat.csv")
+
 
 def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mLoading\033[1;34m]\033[0m {message}\033[0m")
+
 
 def _collect_csv_files(root_path: str) -> List[str]:
     csv_files: List[str] = []

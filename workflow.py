@@ -12,7 +12,8 @@ from preprocessing import RAW_DATASET_PATH, preprocess_dataset, DEFAULT_TRAIN_DA
 from testing import evaluate_model
 from training import train_model, DEFAULT_DECISION_TREE_MODEL_PATH, DEFAULT_RANDOM_FOREST_MODEL_PATH, \
     DEFAULT_LOGISTIC_REGRESSION_MODEL_PATH
-from analysis import plot_confusion_matrix, _heatmap_correlation, plot_feature_importance, plot_multiclass_roc, shap_analysis
+from analysis import plot_confusion_matrix, plot_feature_importance, plot_multiclass_roc, shap_analysis
+
 
 class WorkflowManager:
     def __init__(
@@ -37,6 +38,7 @@ class WorkflowManager:
         self.test_dataset: Optional[pd.DataFrame] = None
         self.decision_tree_model: Optional[DecisionTreeClassifier] = None
         self.random_forest_model: Optional[RandomForestClassifier] = None
+        self.logistic_regression_model: Optional[LogisticRegression] = None
 
         self.latest_metrics: Optional[Dict[str, Dict[str, float]]] = {}
         self._load()
@@ -97,109 +99,34 @@ class WorkflowManager:
     def test_logistic_regression_model(self):
         evaluate_model(model=self.logistic_regression_model, df_test=self.test_dataset)
 
-    def analyze_confusion_matrix(self, model_name: str):
-        model = {
-            "decision_tree": self.decision_tree_model,
-            "random_forest": self.random_forest_model,
-            "logistic_regression": self.logistic_regression_model
-        }.get(model_name)
-        if model is None:
-            print(f"Model '{model_name}' is not loaded.")
-            return
-        if self.test_dataset is None:
-            print("Test dataset not loaded.")
-            return
-        # Prepare X_test and y_test (assume label is last column)
-        X_test = self.test_dataset.iloc[:, :-1]
-        y_test = self.test_dataset.iloc[:, -1]
-        # Compute predictions
-        try:
-            y_pred = model.predict(X_test)
-        except Exception as e:
-            print("Error during prediction:", e)
-            return
-        labels = sorted(y_test.unique())
-        plot_confusion_matrix(y_test, y_pred, labels, title=f"Confusion Matrix - {model_name}")
+    def analyse_decision_tree(self):
+        plot_confusion_matrix(model=self.decision_tree_model, df_test=self.test_dataset)
+        plot_feature_importance(model=self.decision_tree_model, df_train=self.train_dataset)
+        plot_multiclass_roc(model=self.decision_tree_model, df_test=self.test_dataset)
+        shap_analysis(model=self.decision_tree_model, df_test=self.test_dataset)
 
-    def analyze_feature_importance(self, model_name: str):
-        """
-        Plot feature importance for decision tree and random forest.
-        :param model_name: ToDO
-        :return: ToDO
-        """
-        model = {
-            "decision_tree": self.decision_tree_model,
-            "random_forest": self.random_forest_model
-        }.get(model_name)
+    def analyse_random_forest(self):
+        plot_confusion_matrix(model=self.random_forest_model, df_test=self.test_dataset)
+        plot_feature_importance(model=self.random_forest_model, df_train=self.train_dataset)
+        plot_multiclass_roc(model=self.random_forest_model, df_test=self.test_dataset)
+        shap_analysis(model=self.random_forest_model, df_test=self.test_dataset)
 
-        if model is None:
-            print("Feature importance not supported for this model.")
-            return
+    def analyse_logistic_regression(self):
+        plot_confusion_matrix(model=self.logistic_regression_model, df_test=self.test_dataset)
+        plot_multiclass_roc(model=self.logistic_regression_model, df_test=self.test_dataset)
 
-        if self.train_dataset is None:
-            print("Train dataset not loaded.")
-            return
-
-        X = self.train_dataset.iloc[:, :-1]
-        plot_feature_importance(model, X, f"{model_name} Feature Importance")
-
-    def analyze_multiclass_roc(self, model_name: str):
-        """
-        Plot multiclass ROC for the selected model.
-        Expects analysis.plot_multiclass_roc(model, X_test, y_test) signature;
-        if your plot_multiclass_roc expects different args, adapt accordingly.
-        """
-        model = {
-            "decision_tree": self.decision_tree_model,
-            "random_forest": self.random_forest_model,
-            "logistic_regression": self.logistic_regression_model
-        }.get(model_name)
-        if model is None:
-            print(f"Model '{model_name}' unavailable.")
-            return
-        if self.test_dataset is None:
-            print("Test dataset not loaded.")
-            return
-        X_test = self.test_dataset.iloc[:, :-1]
-        y_test = self.test_dataset.iloc[:, -1]
-        plot_multiclass_roc(model, X_test, y_test, title= f"ROC Curve - {model_name}")
-
-    def analyze_shap(self, model_name: str):
-        """
-        Run SHAP analysis for a model
-        :param model_name: ToDo
-        :param max_samples: ToDo
-        :return: ToDo
-        """
-        model = {
-            "decision_tree": self.decision_tree_model,
-            "random_forest": self.random_forest_model,
-        }.get(model_name)
-        if model is None:
-            print("Model missing for SHAP.")
-            return
-        if self.train_dataset is None:
-            print("Train dataset not loaded.")
-            return
-        if self.test_dataset is None:
-            print("Test dataset not loaded.")
-            return
-        X_train = self.train_dataset.iloc[:, :-1]
-        X_test = self.test_dataset.iloc[:, :-1]
-        shap_analysis(model, X_train, X_test)
 
 def _render_menu(actions: Dict[str, Dict[str, str | Callable]]) -> None:
-    print(f'\u250C{45*'\u2500'}\u2510')
-    print(f"\u2502 {'Cyber Threat Detector Workflow'.center(43)} \u2502")
+    print(f'\u250C{55*'\u2500'}\u2510')
+    print(f"\u2502 {'Cyber Threat Detector Workflow'.center(53)} \u2502")
     for key, value in actions.items():
         status = "\033[1;32mReady\033[0m" if value["can_execute"] else "\033[1;31mLocked\033[0m"
-        print(f"\u2502{f' {key}. {value["name"]}'.ljust(35)}{f'[{status}] \u2502'.rjust(22)}")
-    print(f'\u2514{45*'\u2500'}\u2518')
+        print(f"\u2502{f' {key}. {value["name"]}'.ljust(45)}{f'[{status}] \u2502'.rjust(22)}")
+    print(f'\u2514{55*'\u2500'}\u2518')
 
 
 def run_cli() -> None:
     manager = WorkflowManager()
-    print("Cyber Threat Detector interactive workflow.\nPress Ctrl+C to exit at any time.")
     while True:
         actions = {
             "1": {
@@ -254,54 +181,19 @@ def run_cli() -> None:
                                and manager.logistic_regression_model is not None
             },
             "11": {
-                "name": "Plot Confusion Matrix (DT)",
-                "func": lambda: manager.analyze_confusion_matrix("decision_tree"),
+                "name": "Analyse decision tree model",
+                "func": manager.analyse_decision_tree,
                 "can_execute": manager.test_dataset is not None and manager.decision_tree_model is not None
             },
             "12": {
-                "name": "Plot Confusion Matrix (RF)",
-                "func": lambda: manager.analyze_confusion_matrix("random_forest"),
+                "name": "Analyse random forest model",
+                "func": manager.analyse_random_forest,
                 "can_execute": manager.test_dataset is not None and manager.random_forest_model is not None
             },
             "13": {
-                "name": "Plot Confusion Matrix (LR)",
-                "func": lambda: manager.analyze_confusion_matrix("logistic_regression"),
+                "name": "Analyse logistic regression model",
+                "func": manager.analyse_logistic_regression,
                 "can_execute": manager.test_dataset is not None and manager.logistic_regression_model is not None
-            },
-            "14": {
-                "name": "Feature Importance (DT)",
-                "func": lambda: manager.analyze_feature_importance("decision_tree"),
-                "can_execute": manager.train_dataset is not None and manager.decision_tree_model is not None
-            },
-            "15": {
-                "name": "Feature Importance (RF)",
-                "func": lambda: manager.analyze_feature_importance("random_forest"),
-                "can_execute": manager.train_dataset is not None and manager.random_forest_model is not None
-            },
-            "17": {
-                "name": "Multiclass ROC (DT)",
-                "func": lambda: manager.analyze_multiclass_roc("decision_tree"),
-                "can_execute": manager.test_dataset is not None and manager.decision_tree_model is not None
-            },
-            "18": {
-                "name": "Multiclass ROC (RF)",
-                "func": lambda: manager.analyze_multiclass_roc("random_forest"),
-                "can_execute": manager.test_dataset is not None and manager.random_forest_model is not None
-            },
-            "19": {
-                "name": "Multiclass ROC (LR)",
-                "func": lambda:manager.analyze_multiclass_roc("logistic_regression"),
-                "can_execute": manager.test_dataset is not None and manager.logistic_regression_model is not None
-            },
-            "20": {
-                "name": "SHAP values (RF)",
-                "func": lambda: manager.analyze_shap("random_forest"),
-                "can_execute": manager.train_dataset is not None and manager.random_forest_model is not None
-            },
-            "21": {
-                "name": "SHAP values (DT)",
-                "func": lambda: manager.analyze_shap("decision_tree"),
-                "can_execute": manager.train_dataset is not None and manager.decision_tree_model is not None
             },
             "q": {
                 "name": "Quit",

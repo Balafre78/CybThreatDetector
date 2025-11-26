@@ -4,9 +4,8 @@ from typing import Tuple
 import pandas as pd
 import numpy as np
 from pathlib import Path
-
-from pandas import Index
 from sklearn.model_selection import train_test_split
+
 
 RAW_DATASET_PATH = Path("data/cyberdataset_raw.csv")
 DEFAULT_TRAIN_DATASET_PATH = Path("data/cyberdataset_train.csv")
