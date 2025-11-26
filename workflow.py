@@ -143,9 +143,7 @@ def run_cli() -> None:
             except RuntimeError as exc:
                 print(f"[Warning] {exc}")
                 continue
-            except Exception as exc:  # pragma: no cover - surfaces runtime issues to user
-                print(f"[Error] {exc}")
-                continue
+
         except KeyboardInterrupt:
             print("\nInterrupted. Exiting workflow.")
             break

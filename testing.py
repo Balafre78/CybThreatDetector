@@ -6,9 +6,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
-from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
+from loading import inverse_map
+
 
 
 
@@ -38,9 +39,9 @@ def evaluate_model(
     X_test, y_test = _load_test_dataset(test_csv_path)
     metrics: Dict[str, float] = {}
     _log(f"Evaluating {model_name}...")
-    le = joblib.load('./models/label_encoder.joblib')
+
     y_pred_en= model.predict(X_test)
-    y_pred = le.inverse_transform(y_pred_en)
+    y_pred = pd.Series(y_pred_en).map(lambda x: inverse_map[x])
 
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),

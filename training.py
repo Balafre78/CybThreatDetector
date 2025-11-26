@@ -8,8 +8,9 @@ import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import LabelEncoder
+# from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBClassifier
+from loading import label_map
 
 from preprocessing import DEFAULT_TRAIN_DATASET_PATH
 
@@ -38,6 +39,7 @@ def train_models(
     random_state: int = 39,
 ) -> XGBClassifier:
     X_train, y_train = _load_train_dataset(train_csv_path)
+    y_train = y_train.map(lambda x: label_map[x])
     """
     _log("Training DecisionTreeClassifier...")
     dt_model = DecisionTreeClassifier(max_depth=None, random_state=random_state)
@@ -73,14 +75,15 @@ def train_models(
     )
     start = time.time()
     # XGBClassifier don't accept string label
-    le = LabelEncoder()
-    model.fit(X_train, le.fit_transform(y_train), verbose=True)
+    # le = LabelEncoder()
+    #model.fit(X_train, le.fit_transform(y_train), verbose=True)
+    model.fit(X_train, y_train, verbose=True)
     end = time.time()
     _log(f"\033[1;32mXGBClassifier training completed in {end - start:.2f} seconds.")
 
     models_path = Path(models_dir)
     models_path.mkdir(parents=True, exist_ok=True)
-    joblib.dump(le, models_path / 'label_encoder.joblib')
+    # joblib.dump(le, models_path / 'label_encoder.joblib')
     joblib.dump(model, models_path / "XGBoost.joblib")
     _log(f"Saved models to {models_path.resolve()}")
 
