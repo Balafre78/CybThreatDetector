@@ -5,11 +5,13 @@ import matplotlib.pyplot as plt
 import shap
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve
 from sklearn.preprocessing import label_binarize
 from sklearn.tree import DecisionTreeClassifier
 
+from loading import inverse_map
 
 def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mAnalysis\033[1;34m]\033[0m {message}\033[0m")
@@ -72,7 +74,7 @@ def _analyze_label_distribution(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression, df_test: pd.DataFrame) -> None:
+def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) -> None:
     """
     Plot the confusion matrix
     :param model: TODO
@@ -81,7 +83,11 @@ def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier
     _log(f"Plotting Confusion Matrix for {type(model).__name__}")
     X_test = df_test.iloc[:, :-1]
     y_test = df_test.iloc[:, -1]
-    y_pred = model.predict(X_test)
+    if isinstance(model, XGBClassifier):
+        y_pred_e = model.predict(X_test)
+        y_pred = pd.Series(y_pred_e).map(lambda x: inverse_map[x])
+    else:
+        y_pred = model.predict(X_test)
     labels = sorted(y_test.unique())
     cm = confusion_matrix(y_test, y_pred, labels=labels)
     plt.figure(figsize=(18, 12))
@@ -95,7 +101,7 @@ def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier
     plt.show()
 
 
-def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifier, df_train: pd.DataFrame, top_n: int = 15) -> None:
+def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_train: pd.DataFrame, top_n: int = 15) -> None:
     """
     Plot the feature importance
     :param model: TODO
@@ -124,7 +130,7 @@ def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifi
     plt.show()
 
 
-def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression, df_test: pd.DataFrame) -> None:
+def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) -> None:
     """
     TODO
     :param model: TODO
@@ -149,7 +155,7 @@ def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier |
     plt.show()
 
 
-def shap_analysis(model: DecisionTreeClassifier | RandomForestClassifier, df_test: pd.DataFrame, max_samples: int = 1000) -> None:
+def shap_analysis(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_test: pd.DataFrame, max_samples: int = 1000) -> None:
     """
     TODO
     :param model: TODO

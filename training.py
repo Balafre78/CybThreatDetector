@@ -10,23 +10,28 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
+from loading import label_map
 
 
 DEFAULT_DECISION_TREE_MODEL_PATH = Path("models/decision_tree.joblib")
 DEFAULT_RANDOM_FOREST_MODEL_PATH = Path("models/random_forest.joblib")
 DEFAULT_LOGISTIC_REGRESSION_MODEL_PATH = Path("models/logistic_regression.joblib")
+DEFAULT_XGBOOST_MODEL_PATH = Path("models/xgboost.joblib")
 
 
 def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mTraining\033[1;34m]\033[0m {message}\033[0m")
 
 
+
+
 def train_model(
     df_train: pd.DataFrame,
-    model_name: Literal["decision_tree", "random_forest", "logistic_regression"],
+    model_name: Literal["decision_tree", "random_forest", "logistic_regression", "xgboost"],
     model_export_path: Path | str,
     random_state: int = 39,
-) -> DecisionTreeClassifier | RandomForestClassifier | LogisticRegression:
+) -> DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier:
     X_train, y_train = df_train.iloc[:, :-1], df_train.iloc[:, -1]
 
     model = None
@@ -58,6 +63,23 @@ def train_model(
             model.fit(X_train, y_train)
             end = time.time()
             _log(f"\033[1;32mLogisticRegression training completed in {end - start:.2f} seconds.")
+
+        case "xgboost":
+            _log("Training XGBoostClassifier...")
+            y_train_e = y_train.map(lambda x: label_map[x])
+            model = XGBClassifier(
+                n_estimators=500,
+                max_depth=12,
+                learning_rate=0.05,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                tree_method="hist",
+                device="cuda",  # GPU MODE
+            )
+            start = time.time()
+            model.fit(X_train, y_train_e, verbose=True)
+            end = time.time()
+            _log(f"\033[1;32mXGBClassifier training completed in {end - start:.2f} seconds.")
     joblib.dump(model, model_export_path)
     _log(f"Saved model to {model_export_path.resolve()}")
     return model
