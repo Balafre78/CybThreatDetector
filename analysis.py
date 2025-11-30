@@ -19,10 +19,9 @@ def _log(message: str) -> None:
 
 def _heatmap_correlation(df: pd.DataFrame) -> None:
     """
-    Plots a correlation heatmap for all numeric columns in a DataFrame.
-    - Automatically filters non-numeric columns
-    - Drops rows with NaN values before computing correlations
-    :param df: DataFrame to plot
+    Plots a correlation heatmap for all numeric columns in a DataFrame while automatically filtering non-numeric columns
+    and dropping rows with NaN values before computing correlations
+    :param df: A cleaned DataFrame to be plotted
     """
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
@@ -57,8 +56,8 @@ def _heatmap_correlation(df: pd.DataFrame) -> None:
 
 def _analyze_label_distribution(df: pd.DataFrame) -> None:
     """
-    Displays the count of occurrences for each label (attack type) and plots a bar chart.
-    :param df: Dataset containing a label column (last column).
+    Displays the number of occurrences for each label (attack type) and plots a bar chart.
+    :param df : Dataset containing a label column (last column).
     """
     label_col = df.columns[-1]
     label_counts = df[label_col].value_counts()
@@ -76,9 +75,9 @@ def _analyze_label_distribution(df: pd.DataFrame) -> None:
 
 def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) -> None:
     """
-    Plot the confusion matrix
-    :param model: TODO
-    :param df_test: TODO
+    Plots the confusion matrix
+    :param model: A given model between DecisionTreeClassifier, RandomForestClassifier, LogisticRegression and XGBClassifier
+    :param df_test: A cleaned testing Dataframe
     """
     _log(f"Plotting Confusion Matrix for {type(model).__name__}")
     X_test = df_test.iloc[:, :-1]
@@ -103,10 +102,10 @@ def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier
 
 def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_train: pd.DataFrame, top_n: int = 15) -> None:
     """
-    Plot the feature importance
-    :param model: TODO
-    :param df_train: TODO
-    :param top_n: TODO
+    Plots the feature importance.
+    :param model: A given model between DecisionTreeClassifier, RandomForestClassifier and XGBClassifier
+    :param df_train: A Dataframe used for its feature names
+    :param top_n: Number of top features to display
     """
     _log(f"Plotting Feature Importance for {type(model).__name__}")
     X = df_train.iloc[:, :-1]
@@ -132,9 +131,9 @@ def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifi
 
 def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) -> None:
     """
-    TODO
-    :param model: TODO
-    :param df_test: TODO
+    Plots the ROC Curve for every class in a multiclass classification setting.
+    :param model: A given model between DecisionTreeClassifier, RandomForestClassifier, LogisticRegression and XGBClassifier
+    :param df_test: A cleaned Dataframe used for testing
     """
     _log(f"Plotting ROC Curve for {type(model).__name__}")
     X_test = df_test.iloc[:, :-1]
@@ -157,10 +156,10 @@ def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier |
 
 def shap_analysis(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_test: pd.DataFrame, max_samples: int = 1000) -> None:
     """
-    TODO
-    :param model: TODO
-    :param df_test: TODO
-    :param max_samples: TODO
+
+    :param model: A given model between DecisionTreeClassifier, RandomForestClassifier and XGBClassifier
+    :param df_test: A cleaned Dataframe used for testing
+    :param max_samples: Maximum number of samples to use for SHAP analysis
     """
     _log(f"Running SHAP Analysis of {type(model).__name__}...")
     X_train = df_test.iloc[:, :-1]

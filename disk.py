@@ -13,11 +13,9 @@ def _log(message: str, end: str = '\n') -> None:
 
 def load_dataset(csv_path: Path | str) -> Optional[pd.DataFrame]:
     """
-    TODO
-    Args:
-        csv_path: TODO
-    Returns:
-        TODO
+    Loads a dataset from a CSV file located at the given location
+    :param csv_path: Path to load the CSV file from
+    :return The loaded Dataframe if successful,none otherwise
     """
     csv_path = Path(csv_path)
     if not csv_path.exists():
@@ -29,11 +27,9 @@ def load_dataset(csv_path: Path | str) -> Optional[pd.DataFrame]:
 
 def load_model(model_path: Path | str) -> DecisionTreeClassifier | RandomForestClassifier | None:
     """
-    TODO
-    Args:
-        model_path: TODO
-    Returns:
-        TODO
+    Loads a model (DecisionTreeClassifier or RandomForestClassifier) from a given location
+    :param model_path: Path to load the model from
+    :return The loaded model (DecisionTreeClassifier or RandomForestClassifier) if successful, none otherwise
     """
     models_path = Path(model_path)
     if not model_path.exists():

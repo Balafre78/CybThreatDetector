@@ -18,11 +18,10 @@ def _log(message: str, end: str = '\n') -> None:
 
 def _clear_df(df: pd.DataFrame) -> pd.DataFrame:
     """
-    TODO
-    Args:
-        df: TODO
-    Returns:
-        TODO
+    Cleans the Dataframe given as an argument by removing rows with NaN, infinite values and
+    columns filled with zero values
+    :param df: Dataframe that needs to be cleaned
+    :return A Dataframe ready to be used for training or testing
     """
     # Drop rows with NaN
     _log("Dropping rows with NaN values...")
@@ -47,9 +46,8 @@ def _clear_df(df: pd.DataFrame) -> pd.DataFrame:
 
 def _count_labels(df: pd.DataFrame) -> None:
     """
-    TODO
-    Args:
-        df: TODO
+    Prints all the labels and their amount of data within the Dataframe
+    :param df: A cleaned Dataframe
     """
     label_col = df.columns[-1]  # last column
     counts = df[label_col].value_counts()
@@ -59,12 +57,10 @@ def _count_labels(df: pd.DataFrame) -> None:
 
 def _get_highly_correlated_features(df: pd.DataFrame, threshold: float = 0.9) -> list[str]:
     """
-    TODO
-    Args:
-        df: TODO
-        threshold: TODO
-    Returns:
-        TODO
+    Uses every column within the Dataframe except the label column to find highly correlated features
+    :param df: A cleaned Dataframe
+    :param threshold: A correlation threshold to consider if a feature's highly correlated or not
+    :return A list made of those highly correlated feature column names
     """
     _log(f"Searching columns with correlation > {threshold}...")
     # df supposed to be cleared already
@@ -78,12 +74,11 @@ def _get_highly_correlated_features(df: pd.DataFrame, threshold: float = 0.9) ->
 
 def _drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str]) -> pd.DataFrame:
     """
-    TODO
-    Args:
-        df: TODO
-        high_corr_cols: TODO
-    Returns:
-        TODO
+    Drops every column within the Dataframe according to a predefined list of columns to keep and a predefined list
+    of highly correlated features
+    :param df: A cleaned Dataframe
+    :param high_corr_cols: A list made of highly correlated feature column names
+    :return A Dataframe without highly correlated features
     """
     to_keep = [
         'Subflow Fwd Packets',
@@ -106,28 +101,25 @@ def _drop_highly_correlated_features(df: pd.DataFrame, high_corr_cols: list[str]
 def _split_df(df: pd.DataFrame, label_col, test_size: float = 0.2, random_state: int = None) \
         -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    TODO
-    Args:
-        df: TODO
-        label_col: TODO
-        test_size: TODO
-        random_state: TODO
-    Returns:
-        TODO
+    Splits a DataFrame into training and testing sets while preserving the label distribution
+    :param df: A cleaned Dataframe
+    :param label_col: Column name used for stratification
+    :param test_size: A float fraction for the test set
+    :param random_state: An int for reproducibility
+    :return A tuple of DataFrames (train_df and test_df) with new indexes
     """
     train_df, test_df = train_test_split(df, test_size=test_size, random_state=random_state, stratify=df[label_col])
     return train_df.reset_index(drop=True), test_df.reset_index(drop=True)
 
 def _oversample_df(df: pd.DataFrame, label_col, min_samples: int = 2000, random_state: int = None) -> pd.DataFrame:
     """
-    TODO
-    Args:
-        df: TODO
-        label_col: TODO
-        min_samples: TODO
-        random_state: TODO
-    Returns:
-        TODO
+    For rows with a low number of samples (< min_samples), duplicates them until reaching a minimum number of samples per class then
+    shuffles those rows within the Dataframe
+    :param A cleaned Dataframe
+    :param label_col: Column name used for counting
+    :param min_samples: Minimum number of samples per label
+    :param random_state: Integer used for shuffling
+    :return A Dataframe with every label having at least the minimum number of samples (e.g balanced Dataframe)
     """
     np.random.seed(random_state)
     df_balanced = df.copy()
@@ -158,14 +150,14 @@ def preprocess_dataset(
     output_train_csv: Path | str = DEFAULT_TRAIN_DATASET_PATH,
     output_test_csv: Path | str = DEFAULT_TEST_DATASET_PATH) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    TODO
-    Args:
-        df_raw: TODO
-        test_size: TODO
-        output_train_csv: TODO
-        output_test_csv: TODO
-    Returns:
-        TODO
+    Cleans the raw dataset, removes highly correlated features, splits 20% of the data for testing, oversamples
+    the training Dataframe to have at least 2000 samples per label, then saves both Dataframes as CSV files.
+    Prints the time it took to preprocess the dataset.
+    :param df_raw: A raw Dataframe
+    :param test_size: The amount of data to reserve for testing
+    :param output_train_csv: Path where the training dataset is saved
+    :param output_test_csv: Path where the testing dataset is saved
+    :return Both the training and testing Dataframes
     """
     start = time.time()
     #df_raw = _load_raw_dataset(raw_csv)

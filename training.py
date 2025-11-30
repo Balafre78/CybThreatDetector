@@ -32,6 +32,17 @@ def train_model(
     model_export_path: Path | str,
     random_state: int = 39,
 ) -> DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier:
+    """
+    Trains a model based on the given model name (between Decision Tree, Random Forest and Logistic Regression)
+    and training Dataframe
+    :param df_train: A training Dataframe
+    :param model_name: One of the three model names available, which are "decision_tree", "random_forest" and
+                    "logistic_regression"
+    :param model_export_path: Path where the trained model is saved
+    :param random_state: Integer used for reproducibility
+    :return The train model according to the given model name
+    """
+
     X_train, y_train = df_train.iloc[:, :-1], df_train.iloc[:, -1]
 
     model = None

@@ -25,12 +25,11 @@ def _collect_csv_files(root_path: str) -> List[str]:
 
 
 def download_and_merge_dataset(output_csv: Path | str, dataset_id: str = DATASET_ID) -> pd.DataFrame:
-    """Download the Kaggle dataset, merge CSV files, and persist a single training file.
-    Args:
-        output_csv: Destination path for the merged CSV.
-        dataset_id: Kaggle identifier for the dataset.
-    Returns:
-        The raw dataframe to be preprocessed.
+    """
+    Downloads the Kaggle dataset, merges CSV files, and saves the merged Dataframe to a CSV file.
+    :param output_csv: Destination path for the merged CSV
+    :param dataset_id: Kaggle identifier for the dataset
+    :return The merged Dataframe
     """
 
     start = time.time()

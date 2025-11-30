@@ -15,6 +15,14 @@ def _log(message: str) -> None:
 
 def evaluate_model(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) \
     -> Dict[str, float]:
+    """
+    Prints 3 evaluation metrics (Accuracy, F1 Macro, F1 Weighted) for the given model and testing Dataframe and gives
+    a summary of the metrics via Classification Report
+    and testing Dataframe
+    :param model: A given model, either DecisionTreeClassifier, RandomForestClassifier or LogisticRegression
+    :param df_test: A testing Dataframe
+    :return A dictionary containing the 3 evaluation metrics (Accuracy, F1 Macro and F1 Weighted) and their value
+    """
     X_test, y_test = df_test.iloc[:, :-1], df_test.iloc[:, -1]
     metrics: Dict[str, float] = {}
     _log(f"Evaluating {type(model).__name__}...")
