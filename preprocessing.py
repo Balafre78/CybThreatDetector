@@ -20,6 +20,7 @@ def _clear_df(df: pd.DataFrame, zero_threshold: float = 0.95) -> pd.DataFrame:
     Cleans the Dataframe given as an argument by removing rows with NaN, infinite values and
     columns filled with zero values
     :param df: Dataframe that needs to be cleaned
+    :param zero_threshold: A float threshold to consider if a column is filled with zeros or not (by default 90%)
     :return A Dataframe ready to be used for training or testing
     """
     # Drop rows with NaN
