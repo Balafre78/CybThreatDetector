@@ -3,9 +3,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_zero_value_features(df: pd.DataFrame, max_features: int = 20,
-                                     display_decimals: int = 4,
-                                     consider_almost_zero_pct: float = None):
+def plot_zero_value_features(
+        df: pd.DataFrame,
+        max_features: int = 20,
+        display_decimals: int = 4,
+        consider_almost_zero_pct: float = None
+):
     """
     Visualizes the percentage of zero values in each numeric feature.
     - Highlights problematic features (above threshold)
@@ -13,6 +16,8 @@ def plot_zero_value_features(df: pd.DataFrame, max_features: int = 20,
     - Adds a vertical threshold line for clarity
     :param df: raw dataframe
     :param max_features: Max number of features to display
+    :param display_decimals: Number of decimal places to display
+    :param consider_almost_zero_pct: Percentage of zero values to display
     :return: None if the length of numeric features is zero, else a plot
     """
     # select feature columns (exclude last column = label)

@@ -5,6 +5,8 @@ import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 
 
 def _log(message: str, end: str = '\n') -> None:
@@ -19,21 +21,19 @@ def load_dataset(csv_path: Path | str) -> Optional[pd.DataFrame]:
     """
     csv_path = Path(csv_path)
     if not csv_path.exists():
-        #raise FileNotFoundError(f"[Disk Loading] Dataset file not found at {csv_path.resolve()}.")
         return None
     _log(f"\033[1;33mLoading dataset from {csv_path.resolve()}")
     return pd.read_csv(csv_path)
 
 
-def load_model(model_path: Path | str) -> DecisionTreeClassifier | RandomForestClassifier | None:
+def load_model(model_path: Path | str) -> DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier | None:
     """
-    Loads a model (DecisionTreeClassifier or RandomForestClassifier) from a given location
+    Loads a model (DecisionTreeClassifier, DecisionTreeClassifier, LogisticRegression or XGBClassifier) from a given location
     :param model_path: Path to load the model from
-    :return The loaded model (DecisionTreeClassifier or RandomForestClassifier) if successful, none otherwise
+    :return The loaded model if successful, none otherwise
     """
     models_path = Path(model_path)
     if not model_path.exists():
-        #raise FileNotFoundError(f"[Disk Loading] Model file not found at {model_path.resolve()}.")
         return None
     _log(f"\033[1;33mLoading training models from {models_path.resolve()}")
     model = joblib.load(models_path)

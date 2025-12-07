@@ -20,7 +20,7 @@ def _clear_df(df: pd.DataFrame, zero_threshold: float = 0.95) -> pd.DataFrame:
     Cleans the Dataframe given as an argument by removing rows with NaN, infinite values and
     columns filled with zero values
     :param df: Dataframe that needs to be cleaned
-    :param zero_threshold: A float threshold to consider if a column is filled with zeros or not (by default 90%)
+    :param zero_threshold: A float threshold to consider if a column is filled with zeros or not (by default 95%)
     :return A Dataframe ready to be used for training or testing
     """
     # Drop rows with NaN
@@ -113,8 +113,8 @@ def _split_df(df: pd.DataFrame, label_col, test_size: float = 0.2, random_state:
 
 def _oversample_df(df: pd.DataFrame, label_col, min_samples: int = 2000, random_state: int = None) -> pd.DataFrame:
     """
-    For rows with a low number of samples (< min_samples), duplicates them until reaching a minimum number of samples per class then
-    shuffles those rows within the Dataframe
+    For rows with a low number of samples (< min_samples), duplicates them until reaching a minimum number of samples
+    per class then shuffles those rows within the Dataframe
     :param A cleaned Dataframe
     :param label_col: Column name used for counting
     :param min_samples: Minimum number of samples per label
@@ -125,7 +125,7 @@ def _oversample_df(df: pd.DataFrame, label_col, min_samples: int = 2000, random_
     df_balanced = df.copy()
     new_rows = []
     value_counts = df_balanced[label_col].value_counts()
-    print("\n=== Oversampling Summary ===")
+    _log("Oversampling Summary")
     for label, count in value_counts.items():
         if count < min_samples:
             needed = min_samples - count

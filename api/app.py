@@ -66,8 +66,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CybThreatDetector API", lifespan=lifespan)
 
-# --- CORS configuration ---
-# Pour le développement, on autorise toutes les origines. En production, restreindre aux origines nécessaires.
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -158,16 +157,13 @@ def _get_model(model_name: str):
 
 @app.post("/predict/{model_name}")
 async def predict(model_name: str, file: UploadFile = File(...)):
-    # Vérifier modèle
     model = _get_model(model_name)
     if model is None:
         raise HTTPException(status_code=404, detail="Model not found or not loaded.")
 
-    # Vérifier type de fichier
     if not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only .csv files are accepted.")
 
-    # Charger le CSV en DataFrame
     try:
         content = await file.read()
         text = content.decode("utf-8", errors="ignore")
@@ -187,7 +183,6 @@ async def predict(model_name: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction failed: {e}")
 
-    # Retourner le résultat
     return preds.tolist()
 
 

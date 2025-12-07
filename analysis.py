@@ -73,7 +73,10 @@ def _analyze_label_distribution(df: pd.DataFrame) -> None:
     plt.show()
 
 
-def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) -> None:
+def plot_confusion_matrix(
+        model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier,
+        df_test: pd.DataFrame
+) -> None:
     """
     Plots the confusion matrix
     :param model: A given model between DecisionTreeClassifier, RandomForestClassifier, LogisticRegression and XGBClassifier
@@ -100,7 +103,11 @@ def plot_confusion_matrix(model: DecisionTreeClassifier | RandomForestClassifier
     plt.show()
 
 
-def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_train: pd.DataFrame, top_n: int = 15) -> None:
+def plot_feature_importance(
+        model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier,
+        df_train: pd.DataFrame,
+        top_n: int = 15
+) -> None:
     """
     Plots the feature importance.
     :param model: A given model between DecisionTreeClassifier, RandomForestClassifier and XGBClassifier
@@ -129,7 +136,10 @@ def plot_feature_importance(model: DecisionTreeClassifier | RandomForestClassifi
     plt.show()
 
 
-def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier, df_test: pd.DataFrame) -> None:
+def plot_multiclass_roc(
+        model: DecisionTreeClassifier | RandomForestClassifier | LogisticRegression | XGBClassifier,
+        df_test: pd.DataFrame
+) -> None:
     """
     Plots the ROC Curve for every class in a multiclass classification setting.
     :param model: A given model between DecisionTreeClassifier, RandomForestClassifier, LogisticRegression and XGBClassifier
@@ -153,7 +163,11 @@ def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier |
     plt.tight_layout()
     plt.show()
 
-def shap_analysis(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_test: pd.DataFrame, max_samples: int = 1000) -> None:
+def shap_analysis(
+        model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier,
+        df_test: pd.DataFrame,
+        max_samples: int = 1000
+) -> None:
     """
     :param model: A given model between DecisionTreeClassifier, RandomForestClassifier and XGBClassifier
     :param df_test: A cleaned Dataframe used for testing
@@ -165,7 +179,11 @@ def shap_analysis(model: DecisionTreeClassifier | RandomForestClassifier | XGBCl
     y_test = df_test.iloc[:, -1]
     class_names = sorted(y_test.unique())   # ex: ['BENIGN', 'Bot', 'DDoS', ...]
     # SHAP explainer
-    explainer = shap.TreeExplainer(model)
+    explainer = None
+    if isinstance(model, LogisticRegression):
+        explainer = shap.LinearExplainer(model)
+    else:
+        explainer = shap.TreeExplainer(model)
     # Subsampling for performance
     if len(X_test) > max_samples:
         X_shap = X_test.sample(max_samples, random_state=39)

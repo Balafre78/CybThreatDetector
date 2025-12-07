@@ -24,8 +24,6 @@ def _log(message: str) -> None:
     print(f"\033[1;34m[\033[0;36mTraining\033[1;34m]\033[0m {message}\033[0m")
 
 
-
-
 def train_model(
     df_train: pd.DataFrame,
     model_name: Literal["decision_tree", "random_forest", "logistic_regression", "xgboost"],
@@ -36,8 +34,8 @@ def train_model(
     Trains a model based on the given model name (between Decision Tree, Random Forest and Logistic Regression)
     and training Dataframe
     :param df_train: A training Dataframe
-    :param model_name: One of the three model names available, which are "decision_tree", "random_forest" and
-                    "logistic_regression"
+    :param model_name: One of the four model names available, which are "decision_tree", "random_forest",
+    "logistic_regression" and "xgboost"
     :param model_export_path: Path where the trained model is saved
     :param random_state: Integer used for reproducibility
     :return The train model according to the given model name

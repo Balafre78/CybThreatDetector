@@ -47,6 +47,7 @@ class WorkflowManager:
         self.latest_metrics: Optional[Dict[str, Dict[str, float]]] = {}
         self._load()
 
+    ### DISK RELOADING ###
     def _load(self):
         self.raw_dataset = load_dataset(self.raw_dataset_path)
         self.train_dataset = load_dataset(self.train_dataset_path)
@@ -56,15 +57,17 @@ class WorkflowManager:
         self.logistic_regression_model = load_model(self.logistic_regression_model_path)
         self.xgboost_model = load_model(self.xgboost_model_path)
 
+    ### LOADING ###
     def load_data(self):
         self.raw_dataset = download_and_merge_dataset(output_csv=self.raw_dataset_path)
 
+    ### VISUALIZATION ###
     def visualize(self):
         plot_zero_value_features(df=self.raw_dataset)
-        plot_zero_value_features(df=self.train_dataset)
         plot_class_distribution(df=self.raw_dataset)
         plot_benign_vs_attacks(df=self.raw_dataset)
 
+    ### PREPROCESSING ###
     def preprocess_data(self):
         self.train_dataset, self.test_dataset = preprocess_dataset(
             df_raw=self.raw_dataset,
@@ -72,12 +75,12 @@ class WorkflowManager:
             output_test_csv=self.test_dataset_path
         )
 
+    ### TRAINING ###
     def train_all_models(self):
         self.train_decision_tree_model()
         self.train_random_forest_model()
         self.train_logistic_regression_model()
         self.train_xgboost_model()
-
 
     def train_decision_tree_model(self):
         self.decision_tree_model = train_model(
@@ -106,6 +109,8 @@ class WorkflowManager:
             model_name="xgboost",
             model_export_path=self.xgboost_model_path
         )
+
+    ### TESTING ###
     def test_all_models(self):
         self.test_decision_tree_model()
         self.test_random_forest_model()
@@ -123,6 +128,13 @@ class WorkflowManager:
 
     def test_xgboost_model(self):
         evaluate_model(model=self.xgboost_model, df_test=self.test_dataset)
+
+    ### ANALYSIS ###
+    def analyse_all_models(self):
+        self.analyse_decision_tree()
+        self.analyse_random_forest()
+        self.analyse_logistic_regression()
+        self.analyse_xgboost()
 
     def analyse_decision_tree(self):
         plot_confusion_matrix(model=self.decision_tree_model, df_test=self.test_dataset)
@@ -145,6 +157,7 @@ class WorkflowManager:
         plot_feature_importance(model=self.xgboost_model, df_train=self.train_dataset)
         plot_multiclass_roc(model=self.xgboost_model, df_test=self.test_dataset)
         shap_analysis(model=self.xgboost_model, df_test=self.test_dataset)
+
 
 def _render_menu(actions: Dict[str, Dict[str, str | Callable]]) -> None:
     print(f'\u250C{55*'\u2500'}\u2510')
@@ -223,27 +236,33 @@ def run_cli() -> None:
                 "name": "Test all models",
                 "func": manager.test_all_models,
                 "can_execute": manager.test_dataset is not None and manager.decision_tree_model is not None and manager.random_forest_model is not None
-                               and manager.logistic_regression_model is not None
+                               and manager.logistic_regression_model is not None and manager.xgboost_model is not None
             },
             "14": {
                 "name": "Analyse decision tree model",
                 "func": manager.analyse_decision_tree,
-                "can_execute": manager.test_dataset is not None and manager.decision_tree_model is not None
+                "can_execute": manager.decision_tree_model is not None
             },
             "15": {
                 "name": "Analyse random forest model",
                 "func": manager.analyse_random_forest,
-                "can_execute": manager.test_dataset is not None and manager.random_forest_model is not None
+                "can_execute": manager.random_forest_model is not None
             },
             "16": {
                 "name": "Analyse logistic regression model",
                 "func": manager.analyse_logistic_regression,
-                "can_execute": manager.test_dataset is not None and manager.logistic_regression_model is not None
+                "can_execute": manager.logistic_regression_model is not None
             },
             "17": {
                 "name": "Analyse xgboost model",
                 "func": manager.analyse_xgboost,
-                "can_execute": manager.test_dataset is not None and manager.xgboost_model is not None
+                "can_execute": manager.xgboost_model is not None
+            },
+            "18": {
+                "name": "Analyse all models",
+                "func": manager.analyse_all_models,
+                "can_execute": manager.decision_tree_model is not None and manager.random_forest_model is not None
+                               and manager.logistic_regression_model is not None and manager.xgboost_model is not None
             },
             "q": {
                 "name": "Quit",
