@@ -7,13 +7,13 @@ def plot_zero_value_features(df: pd.DataFrame, max_features: int = 20,
                                      display_decimals: int = 4,
                                      consider_almost_zero_pct: float = None):
     """
-    Visualize the percentage of zero values in each numeric feature.
+    Visualizes the percentage of zero values in each numeric feature.
     - Highlights problematic features (above threshold)
     - Warns for columns that are 100% zero
     - Adds a vertical threshold line for clarity
     :param df: raw dataframe
     :param max_features: Max number of features to display
-    :return:
+    :return: None if the length of numeric features is zero, else a plot
     """
     # select feature columns (exclude last column = label)
     feature_cols = df.columns[:-1]
@@ -75,10 +75,9 @@ def plot_zero_value_features(df: pd.DataFrame, max_features: int = 20,
 
 def plot_class_distribution(df: pd.DataFrame, log_scale: bool = True) -> None:
     """
-    Label / class distribution (bar plot).
-    :param df:
-    :param log_scale:
-    :return: plot
+    Plots a barplot made of the label and class distribution within the given Dataframe.
+    :param df: A cleaned Dataframe
+    :param log_scale: A boolean used to set y-axis to logarithmic scale (if True which it is)
     """
     label_col = df.columns[-1]
     counts = df[label_col].value_counts().sort_values(ascending=False)
@@ -112,12 +111,12 @@ def plot_class_distribution(df: pd.DataFrame, log_scale: bool = True) -> None:
 
 def plot_benign_vs_attacks(df: pd.DataFrame) -> None:
     """
-    Barplot: number of BENIGN vs all other attacks grouped together.
+    Plots a barplot of the BENIGN class against all the other attacks grouped together.
     Produces exactly two bars:
     - 'BENIGN'
     - 'Attacks' (sum of all non-BENIGN classes)
-    :param df: raw dataframe
-    :return: plot
+    :param df: A raw Dataframe
+    :return: None if the given Dataframe doesn't contain the 'BENIGN' class, else a plot
     """
     label_col = df.columns[-1]
 
