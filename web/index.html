@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CybThreatDetector - Predictions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --accent: #2563eb;
+            --accent-dark: #1d4ed8;
+            --bg: #0f172a;
+            --text: #e2e8f0;
+            --card: #1e293b;
+            --border: #334155;
+            --success: #16a34a;
+            --error: #dc2626;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #020617, #0f172a);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+        .app-shell {
+            width: min(1200px, 100%);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(51, 65, 85, 0.7);
+            border-radius: 18px;
+            padding: 32px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 2rem;
+            letter-spacing: -0.02em;
+        }
+        p.subtitle {
+            margin: 0 0 24px;
+            color: #94a3b8;
+        }
+        form {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        label {
+            font-weight: 500;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .field {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        input[type="file"], select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: white;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        button:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+        }
+        .status {
+            min-height: 24px;
+            font-size: 0.95rem;
+            color: #f8fafc;
+            margin-bottom: 12px;
+        }
+        .table-wrapper {
+            max-height: 520px;
+            overflow: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.65);
+            position: relative;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.9rem;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(6px);
+            z-index: 1;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 2;
+        }
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+            text-align: left;
+        }
+        th:last-child,
+        td:last-child {
+            position: sticky;
+            right: 0;
+            min-width: 170px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 2;
+        }
+        tbody td:last-child {
+            box-shadow: -1px 0 0 rgba(15, 23, 42, 0.6);
+        }
+        .result-chip {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .result-chip.success {
+            color: var(--success);
+            background: rgba(22, 163, 74, 0.12);
+            border: 1px solid rgba(22, 163, 74, 0.4);
+        }
+        .result-chip.error {
+            color: var(--error);
+            background: rgba(220, 38, 38, 0.12);
+            border: 1px solid rgba(220, 38, 38, 0.4);
+        }
+        .legend {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 12px;
+        }
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pill {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+        }
+        .pill.success { background: var(--success); }
+        .pill.error { background: var(--error); }
+        @media (max-width: 720px) {
+            .app-shell { padding: 20px; }
+            th, td { white-space: nowrap; }
+        }
+    </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <h1>CybThreatDetector</h1>
+        <p class="subtitle">Raphaël GUIGNOLLE, Victor LI YIM, Malo GAVARD, Titouan LENAIN, Lucas MONNAIS</p>
+        <form id="predict-form">
+            <div class="field">
+                <label for="csvFile">CSV file</label>
+                <input id="csvFile" type="file" accept=".csv" required />
+            </div>
+            <div class="field">
+                <label for="modelSelect">Model</label>
+                <select id="modelSelect" required>
+                    <option value="" disabled selected>Select a model...</option>
+                </select>
+            </div>
+            <button type="submit" id="submitBtn">Run prediction</button>
+        </form>
+        <div class="status" id="status"></div>
+        <div class="legend">
+            <span><span class="pill success"></span> Correct prediction</span>
+            <span><span class="pill error"></span> Incorrect prediction</span>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead id="table-head"></thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        const API_BASE = 'http://localhost:2001';
+        const modelSelect = document.getElementById('modelSelect');
+        const fileInput = document.getElementById('csvFile');
+        const form = document.getElementById('predict-form');
+        const statusEl = document.getElementById('status');
+        const tableHead = document.getElementById('table-head');
+        const tableBody = document.getElementById('table-body');
+        const submitBtn = document.getElementById('submitBtn');
+        const tableWrapper = document.querySelector('.table-wrapper');
+        const ROW_BATCH_SIZE = 200;
+        const tableState = {
+            headers: [],
+            rows: [],
+            predictions: [],
+            rendered: 0
+        };
+        let isRenderingChunk = false;
+
+        const setStatus = (msg, tone = 'info') => {
+            const palette = { info: '#f8fafc', success: '#4ade80', error: '#f87171' };
+            statusEl.textContent = msg;
+            statusEl.style.color = palette[tone] || palette.info;
+        };
+
+        async function fetchModels() {
+            try {
+                setStatus('Loading available models...');
+                const resp = await fetch(`${API_BASE}/models`);
+                if (!resp.ok) throw new Error('API unavailable');
+                const models = await resp.json();
+                modelSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+                models.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = `${m.name}${m.loaded ? '' : ' (not loaded)'}`;
+                    option.disabled = !m.loaded;
+                    modelSelect.appendChild(option);
+                });
+                const loadedCount = models.filter(({ loaded }) => loaded).length;
+                setStatus(`${loadedCount} model(s) ready.`, 'success');
+            } catch (err) {
+                console.error(err);
+                setStatus('Unable to fetch models list.', 'error');
+            }
+        }
+
+        function parseCsvFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const text = reader.result;
+                    const { data } = Papa.parse(text, {
+                        skipEmptyLines: true,
+                        dynamicTyping: false
+                    });
+                    if (!data.length) {
+                        reject(new Error('Empty CSV.'));
+                        return;
+                    }
+                    const headers = data[0];
+                    const rows = data.slice(1);
+                    resolve({ headers, rows });
+                };
+                reader.onerror = () => reject(new Error('Unable to read the file.'));
+                reader.readAsText(file, 'utf-8');
+            });
+        }
+
+        function renderTableHead(headers) {
+            tableHead.innerHTML = '';
+            const headRow = document.createElement('tr');
+            headers.forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                headRow.appendChild(th);
+            });
+            const predictionHeader = document.createElement('th');
+            predictionHeader.textContent = 'Model result';
+            headRow.appendChild(predictionHeader);
+            tableHead.appendChild(headRow);
+        }
+
+        function appendRowsChunk() {
+            if (isRenderingChunk) return;
+            if (!tableState.rows.length) return;
+            if (tableState.rendered >= tableState.rows.length) return;
+            isRenderingChunk = true;
+            try {
+                const fragment = document.createDocumentFragment();
+                const nextLimit = Math.min(tableState.rendered + ROW_BATCH_SIZE, tableState.rows.length);
+                for (let idx = tableState.rendered; idx < nextLimit; idx += 1) {
+                    const row = tableState.rows[idx];
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+                    const predictionCell = document.createElement('td');
+                    const actualValue = row[row.length - 1];
+                    const predictedValue = tableState.predictions[idx];
+                    const chip = document.createElement('span');
+                    chip.className = `result-chip ${String(predictedValue) === String(actualValue) ? 'success' : 'error'}`;
+                    chip.textContent = predictedValue;
+                    predictionCell.appendChild(chip);
+                    tr.appendChild(predictionCell);
+                    fragment.appendChild(tr);
+                }
+                tableBody.appendChild(fragment);
+                tableState.rendered = nextLimit;
+            } finally {
+                isRenderingChunk = false;
+            }
+        }
+
+        function resetTable(headers, rows, predictions) {
+            tableState.headers = headers;
+            tableState.rows = rows;
+            tableState.predictions = predictions;
+            tableState.rendered = 0;
+            renderTableHead(headers);
+            tableBody.innerHTML = '';
+            if (tableWrapper) {
+                tableWrapper.scrollTop = 0;
+            }
+            appendRowsChunk();
+        }
+
+        if (tableWrapper) {
+            tableWrapper.addEventListener('scroll', () => {
+                const nearBottom = tableWrapper.scrollTop + tableWrapper.clientHeight >= tableWrapper.scrollHeight - 120;
+                if (nearBottom) {
+                    appendRowsChunk();
+                }
+            });
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!fileInput.files.length) {
+                setStatus('Select a CSV file to continue.', 'error');
+                return;
+            }
+            if (!modelSelect.value) {
+                setStatus('Choose a loaded model.', 'error');
+                return;
+            }
+            submitBtn.disabled = true;
+            setStatus('Running analysis, please wait...');
+            try {
+                const file = fileInput.files[0];
+                const { headers, rows } = await parseCsvFile(file);
+                const formData = new FormData();
+                formData.append('file', file);
+                const resp = await fetch(`${API_BASE}/predict/${modelSelect.value}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Prediction failed.');
+                }
+                const predictions = await resp.json();
+                if (predictions.length !== rows.length) {
+                    throw new Error('Unexpected predictions length.');
+                }
+                resetTable(headers, rows, predictions);
+                setStatus('Predictions completed', 'success');
+            } catch (err) {
+                console.error(err);
+                setStatus(err.message || 'Unknown error.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        fetchModels();
+    </script>
+</body>
+</html>

@@ -26,3 +26,4 @@ env.bak/
 venv.bak/
 data/
 models/
+.idea/
