@@ -39,7 +39,7 @@ def evaluate_model(model: DecisionTreeClassifier | RandomForestClassifier | Logi
     print(f"- Accuracy: {metrics['accuracy']:.4f}")
     print(f"- F1 Macro: {metrics['f1_macro']:.4f}")
     print(f"- F1 Weighted: {metrics['f1_weighted']:.4f}")
-    print("Classification Report:\n", classification_report(y_test, y_pred))
+    print("Classification Report:\n", classification_report(y_test, y_pred, digits=4))
     labels = sorted(y_test.unique())
     return metrics
 

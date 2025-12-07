@@ -15,7 +15,7 @@ DEFAULT_TEST_DATASET_PATH = Path("data/cyberdataset_test.csv")
 def _log(message: str, end: str = '\n') -> None:
     print(f"\033[1;34m[\033[0;36mPreprocessing\033[1;34m]\033[0m {message}\033[0m", end=end)
 
-def _clear_df(df: pd.DataFrame, zero_threshold: float = 0.90) -> pd.DataFrame:
+def _clear_df(df: pd.DataFrame, zero_threshold: float = 0.95) -> pd.DataFrame:
     """
     Cleans the Dataframe given as an argument by removing rows with NaN, infinite values and
     columns filled with zero values

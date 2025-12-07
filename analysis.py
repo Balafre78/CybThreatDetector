@@ -153,30 +153,36 @@ def plot_multiclass_roc(model: DecisionTreeClassifier | RandomForestClassifier |
     plt.tight_layout()
     plt.show()
 
-
 def shap_analysis(model: DecisionTreeClassifier | RandomForestClassifier | XGBClassifier, df_test: pd.DataFrame, max_samples: int = 1000) -> None:
     """
-
     :param model: A given model between DecisionTreeClassifier, RandomForestClassifier and XGBClassifier
     :param df_test: A cleaned Dataframe used for testing
     :param max_samples: Maximum number of samples to use for SHAP analysis
     """
-    _log(f"Running SHAP Analysis of {type(model).__name__}...")
-    X_train = df_test.iloc[:, :-1]
+    _log(f"Running SHAP Analysis for {type(model).__name__}...")
+    # Extract labels
     X_test = df_test.iloc[:, :-1]
-    # SHAP explainer for tree-based models (fast, optimized)
+    y_test = df_test.iloc[:, -1]
+    class_names = sorted(y_test.unique())   # ex: ['BENIGN', 'Bot', 'DDoS', ...]
+    # SHAP explainer
     explainer = shap.TreeExplainer(model)
+    # Subsampling for performance
     if len(X_test) > max_samples:
         X_shap = X_test.sample(max_samples, random_state=39)
     else:
         X_shap = X_test
-    _log(f"Computing SHAP values on {len(X_shap)} samples")
-    # Compute SHAP values
+    _log(f"Computing SHAP values on {len(X_shap)} samples...")
     shap_values = explainer.shap_values(X_shap)
-    # Summary plot (global importance)
-    _log("Plotting SHAP summary (global feature impact)")
-    shap.summary_plot(shap_values, X_shap, plot_type="dot")
-    # Bar plot (mean SHAP)
-    _log("Plotting SHAP bar plot (mean absolute importance)")
-    shap.summary_plot(shap_values, X_shap, plot_type="bar")
+    # Rename the classes inside shap_values
+    if isinstance(shap_values, list):
+        for i in range(len(shap_values)):
+            if i < len(class_names):
+                shap_values[i].name = class_names[i]
+    # SHAP summary plot dot
+    _log("Displaying SHAP summary plot...")
+    shap.summary_plot(shap_values, X_shap, plot_type="dot", class_names=class_names)
+    # SHAP bar plot
+    _log("Displaying SHAP bar plot...")
+    shap.summary_plot(shap_values, X_shap, plot_type="bar", class_names=class_names)
+
     return shap_values
